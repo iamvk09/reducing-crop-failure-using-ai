@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_3d199a16f139db83ef6591d4f647556a {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_3d199a16f139db83ef6591d4f647556a" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_3d199a16f139db83ef6591d4f647556a = L.map(
+                "map_3d199a16f139db83ef6591d4f647556a",
+                {
+                    center: [22.8, 79.8],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 5,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_b7e8c9492e39f945fbe86d48cc95dd6b = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 20,
+  "maxNativeZoom": 20,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
+  "subdomains": "abcd",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_b7e8c9492e39f945fbe86d48cc95dd6b.addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+            var circle_marker_83f0db24e085902aae7a75c0c169c873 = L.circleMarker(
+                [23.0225, 72.5714],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_d06b7d827b2f87a7892b4f39edacf4d9 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_c268622ed18f489ffd32cf9d2c4e477f = $(`<div id="html_c268622ed18f489ffd32cf9d2c4e477f" style="width: 100.0%; height: 100.0%;"><b>Ahmedabad, Gujarat</b><br>Current Crop: Cotton<br>Recommended Crop: Cotton<br>Risk Level: High<br>Consensus Risk: 71.9%<br>Top Options: Cotton (55.5%), Soybean (18.0%), Maize (13.2%)</div>`)[0];
+                popup_d06b7d827b2f87a7892b4f39edacf4d9.setContent(html_c268622ed18f489ffd32cf9d2c4e477f);
+            
+        
+
+        circle_marker_83f0db24e085902aae7a75c0c169c873.bindPopup(popup_d06b7d827b2f87a7892b4f39edacf4d9)
+        ;
+
+        
+    
+    
+            var circle_marker_5068cef6bf6b38e55ae1afa42c39900b = L.circleMarker(
+                [12.9716, 77.5946],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "green", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_0e0011919d18f05d8e98069757019cdb = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_8b7970f857e25c6eed5a36eb62d805f8 = $(`<div id="html_8b7970f857e25c6eed5a36eb62d805f8" style="width: 100.0%; height: 100.0%;"><b>Bengaluru, Karnataka</b><br>Current Crop: Millet<br>Recommended Crop: Millet<br>Risk Level: Low<br>Consensus Risk: 42.6%<br>Top Options: Millet (60.0%), Groundnut (39.3%), Maize (0.4%)</div>`)[0];
+                popup_0e0011919d18f05d8e98069757019cdb.setContent(html_8b7970f857e25c6eed5a36eb62d805f8);
+            
+        
+
+        circle_marker_5068cef6bf6b38e55ae1afa42c39900b.bindPopup(popup_0e0011919d18f05d8e98069757019cdb)
+        ;
+
+        
+    
+    
+            var circle_marker_d4e43da65b67f1f2abf23128d0808605 = L.circleMarker(
+                [23.2599, 77.4126],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_e7aaf20d7add72e840f368e19a2b2286 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_f5f9864bba55d33a990e68a037196d02 = $(`<div id="html_f5f9864bba55d33a990e68a037196d02" style="width: 100.0%; height: 100.0%;"><b>Bhopal, Madhya Pradesh</b><br>Current Crop: Groundnut<br>Recommended Crop: Millet<br>Risk Level: Medium<br>Consensus Risk: 67.4%<br>Top Options: Millet (55.6%), Groundnut (41.5%), Soybean (1.1%)</div>`)[0];
+                popup_e7aaf20d7add72e840f368e19a2b2286.setContent(html_f5f9864bba55d33a990e68a037196d02);
+            
+        
+
+        circle_marker_d4e43da65b67f1f2abf23128d0808605.bindPopup(popup_e7aaf20d7add72e840f368e19a2b2286)
+        ;
+
+        
+    
+    
+            var circle_marker_eb1e2fe9a49217769e1b8e79cb25a0f4 = L.circleMarker(
+                [20.2961, 85.8245],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_d3cafbf8cf3771cfce634bdad3c512b3 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_3ed4257349ca7221855688c1d69aa661 = $(`<div id="html_3ed4257349ca7221855688c1d69aa661" style="width: 100.0%; height: 100.0%;"><b>Bhubaneswar, Odisha</b><br>Current Crop: Groundnut<br>Recommended Crop: Groundnut<br>Risk Level: High<br>Consensus Risk: 77.7%<br>Top Options: Groundnut (68.1%), Millet (23.5%), Wheat (5.0%)</div>`)[0];
+                popup_d3cafbf8cf3771cfce634bdad3c512b3.setContent(html_3ed4257349ca7221855688c1d69aa661);
+            
+        
+
+        circle_marker_eb1e2fe9a49217769e1b8e79cb25a0f4.bindPopup(popup_d3cafbf8cf3771cfce634bdad3c512b3)
+        ;
+
+        
+    
+    
+            var circle_marker_a36ee2becf6c5c1950cf1ed7ab6a3fc4 = L.circleMarker(
+                [13.0827, 80.2707],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_6b02213d7223655ec8fecc783e8f4c71 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_1f32e05d9f3f9f6bd6970a7b17a2877b = $(`<div id="html_1f32e05d9f3f9f6bd6970a7b17a2877b" style="width: 100.0%; height: 100.0%;"><b>Chennai, Tamil Nadu</b><br>Current Crop: Cotton<br>Recommended Crop: Rice<br>Risk Level: High<br>Consensus Risk: 80.4%<br>Top Options: Rice (91.4%), Soybean (2.8%), Cotton (2.2%)</div>`)[0];
+                popup_6b02213d7223655ec8fecc783e8f4c71.setContent(html_1f32e05d9f3f9f6bd6970a7b17a2877b);
+            
+        
+
+        circle_marker_a36ee2becf6c5c1950cf1ed7ab6a3fc4.bindPopup(popup_6b02213d7223655ec8fecc783e8f4c71)
+        ;
+
+        
+    
+    
+            var circle_marker_9a49409cd52e9fbb49c6230e4b28e8d6 = L.circleMarker(
+                [11.0168, 76.9558],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_a173a01b0d7583e0763a2405feb9af5a = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_881d5975097ac09775e26c7ce67d0085 = $(`<div id="html_881d5975097ac09775e26c7ce67d0085" style="width: 100.0%; height: 100.0%;"><b>Coimbatore, Tamil Nadu</b><br>Current Crop: Soybean<br>Recommended Crop: Maize<br>Risk Level: High<br>Consensus Risk: 72.7%<br>Top Options: Maize (73.9%), Cotton (18.6%), Soybean (3.4%)</div>`)[0];
+                popup_a173a01b0d7583e0763a2405feb9af5a.setContent(html_881d5975097ac09775e26c7ce67d0085);
+            
+        
+
+        circle_marker_9a49409cd52e9fbb49c6230e4b28e8d6.bindPopup(popup_a173a01b0d7583e0763a2405feb9af5a)
+        ;
+
+        
+    
+    
+            var circle_marker_54acb84bf1aa10933523bd670cf68623 = L.circleMarker(
+                [17.385, 78.4867],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_514bb775a448eebdb5515894d67f1218 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_daf31abf576d845100223ecfd807cce3 = $(`<div id="html_daf31abf576d845100223ecfd807cce3" style="width: 100.0%; height: 100.0%;"><b>Hyderabad, Telangana</b><br>Current Crop: Soybean<br>Recommended Crop: Maize<br>Risk Level: Medium<br>Consensus Risk: 68.4%<br>Top Options: Maize (76.2%), Rice (10.2%), Cotton (5.7%)</div>`)[0];
+                popup_514bb775a448eebdb5515894d67f1218.setContent(html_daf31abf576d845100223ecfd807cce3);
+            
+        
+
+        circle_marker_54acb84bf1aa10933523bd670cf68623.bindPopup(popup_514bb775a448eebdb5515894d67f1218)
+        ;
+
+        
+    
+    
+            var circle_marker_b4567ff4b7d8315e3fadc046d34d801b = L.circleMarker(
+                [22.7196, 75.8577],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_7531d01c651121ecd557d617a57bcb87 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_6de321535118f40c8dc87e5b86a65348 = $(`<div id="html_6de321535118f40c8dc87e5b86a65348" style="width: 100.0%; height: 100.0%;"><b>Indore, Madhya Pradesh</b><br>Current Crop: Rice<br>Recommended Crop: Soybean<br>Risk Level: Medium<br>Consensus Risk: 69.9%<br>Top Options: Soybean (68.2%), Cotton (26.5%), Maize (2.0%)</div>`)[0];
+                popup_7531d01c651121ecd557d617a57bcb87.setContent(html_6de321535118f40c8dc87e5b86a65348);
+            
+        
+
+        circle_marker_b4567ff4b7d8315e3fadc046d34d801b.bindPopup(popup_7531d01c651121ecd557d617a57bcb87)
+        ;
+
+        
+    
+    
+            var circle_marker_41924c6201ca9bd6cee537214bcf6a20 = L.circleMarker(
+                [26.9124, 75.7873],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_d2004f238ab92b0538dcdd16748daac0 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_2bfc639d4bd21e8abb7d7d90dac7440a = $(`<div id="html_2bfc639d4bd21e8abb7d7d90dac7440a" style="width: 100.0%; height: 100.0%;"><b>Jaipur, Rajasthan</b><br>Current Crop: Rice<br>Recommended Crop: Cotton<br>Risk Level: High<br>Consensus Risk: 75.9%<br>Top Options: Cotton (66.6%), Soybean (14.2%), Millet (7.0%)</div>`)[0];
+                popup_d2004f238ab92b0538dcdd16748daac0.setContent(html_2bfc639d4bd21e8abb7d7d90dac7440a);
+            
+        
+
+        circle_marker_41924c6201ca9bd6cee537214bcf6a20.bindPopup(popup_d2004f238ab92b0538dcdd16748daac0)
+        ;
+
+        
+    
+    
+            var circle_marker_84213b1cde7b8cea6e1dcc97748fbe9e = L.circleMarker(
+                [26.2389, 73.0243],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_9b0f7a71c172680817befd50bc78eadc = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_f5517161df63c4e71c3892ecff462462 = $(`<div id="html_f5517161df63c4e71c3892ecff462462" style="width: 100.0%; height: 100.0%;"><b>Jodhpur, Rajasthan</b><br>Current Crop: Wheat<br>Recommended Crop: Chickpea<br>Risk Level: High<br>Consensus Risk: 91.3%<br>Top Options: Chickpea (83.1%), Mustard (13.6%), Millet (1.4%)</div>`)[0];
+                popup_9b0f7a71c172680817befd50bc78eadc.setContent(html_f5517161df63c4e71c3892ecff462462);
+            
+        
+
+        circle_marker_84213b1cde7b8cea6e1dcc97748fbe9e.bindPopup(popup_9b0f7a71c172680817befd50bc78eadc)
+        ;
+
+        
+    
+    
+            var circle_marker_0744f95b1aeea86dcf4e3ef4c30606b0 = L.circleMarker(
+                [26.4499, 80.3319],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_f28e4128a6e5fe1564513abf940b90a9 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_fe32eff3baa100ce1bae98b3975cb762 = $(`<div id="html_fe32eff3baa100ce1bae98b3975cb762" style="width: 100.0%; height: 100.0%;"><b>Kanpur, Uttar Pradesh</b><br>Current Crop: Cotton<br>Recommended Crop: Maize<br>Risk Level: Medium<br>Consensus Risk: 64.7%<br>Top Options: Maize (51.0%), Rice (38.1%), Cotton (4.4%)</div>`)[0];
+                popup_f28e4128a6e5fe1564513abf940b90a9.setContent(html_fe32eff3baa100ce1bae98b3975cb762);
+            
+        
+
+        circle_marker_0744f95b1aeea86dcf4e3ef4c30606b0.bindPopup(popup_f28e4128a6e5fe1564513abf940b90a9)
+        ;
+
+        
+    
+    
+            var circle_marker_b5834d1763246b08d9248ae212af2eeb = L.circleMarker(
+                [22.5726, 88.3639],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_7970e06cad6c2e6ed144463468b00caa = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_8b607bc1f3ff45cb025f731623121209 = $(`<div id="html_8b607bc1f3ff45cb025f731623121209" style="width: 100.0%; height: 100.0%;"><b>Kolkata, West Bengal</b><br>Current Crop: Maize<br>Recommended Crop: Rice<br>Risk Level: High<br>Consensus Risk: 76.9%<br>Top Options: Rice (92.9%), Maize (3.3%), Groundnut (1.4%)</div>`)[0];
+                popup_7970e06cad6c2e6ed144463468b00caa.setContent(html_8b607bc1f3ff45cb025f731623121209);
+            
+        
+
+        circle_marker_b5834d1763246b08d9248ae212af2eeb.bindPopup(popup_7970e06cad6c2e6ed144463468b00caa)
+        ;
+
+        
+    
+    
+            var circle_marker_74391e5ba9d61718da4e27d707c7692a = L.circleMarker(
+                [25.2138, 75.8648],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_55944c7da6dd5f77715ac47add53c0ef = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_b5ed717e9d2ef53c5454a1c77cbd3e42 = $(`<div id="html_b5ed717e9d2ef53c5454a1c77cbd3e42" style="width: 100.0%; height: 100.0%;"><b>Kota, Rajasthan</b><br>Current Crop: Mustard<br>Recommended Crop: Chickpea<br>Risk Level: Medium<br>Consensus Risk: 63.7%<br>Top Options: Chickpea (47.6%), Wheat (32.4%), Mustard (16.5%)</div>`)[0];
+                popup_55944c7da6dd5f77715ac47add53c0ef.setContent(html_b5ed717e9d2ef53c5454a1c77cbd3e42);
+            
+        
+
+        circle_marker_74391e5ba9d61718da4e27d707c7692a.bindPopup(popup_55944c7da6dd5f77715ac47add53c0ef)
+        ;
+
+        
+    
+    
+            var circle_marker_f89538136676d4e0c3c97cdf91114836 = L.circleMarker(
+                [26.8467, 80.9462],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_60fd4fd62bb0cc4c5376923cdc8b98c8 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_d06e95bc2632d765839ef37d857837ee = $(`<div id="html_d06e95bc2632d765839ef37d857837ee" style="width: 100.0%; height: 100.0%;"><b>Lucknow, Uttar Pradesh</b><br>Current Crop: Chickpea<br>Recommended Crop: Wheat<br>Risk Level: Medium<br>Consensus Risk: 63.1%<br>Top Options: Wheat (57.6%), Mustard (21.8%), Chickpea (18.3%)</div>`)[0];
+                popup_60fd4fd62bb0cc4c5376923cdc8b98c8.setContent(html_d06e95bc2632d765839ef37d857837ee);
+            
+        
+
+        circle_marker_f89538136676d4e0c3c97cdf91114836.bindPopup(popup_60fd4fd62bb0cc4c5376923cdc8b98c8)
+        ;
+
+        
+    
+    
+            var circle_marker_205509b5c88c3a61a207f0b93f584ae6 = L.circleMarker(
+                [30.901, 75.8573],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_d5ee78b78de90fd8c0be589d9d277e33 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_e0a039dacdfd48f7eecf3973cd60b0e9 = $(`<div id="html_e0a039dacdfd48f7eecf3973cd60b0e9" style="width: 100.0%; height: 100.0%;"><b>Ludhiana, Punjab</b><br>Current Crop: Cotton<br>Recommended Crop: Maize<br>Risk Level: Medium<br>Consensus Risk: 68.3%<br>Top Options: Maize (50.9%), Soybean (32.2%), Rice (11.6%)</div>`)[0];
+                popup_d5ee78b78de90fd8c0be589d9d277e33.setContent(html_e0a039dacdfd48f7eecf3973cd60b0e9);
+            
+        
+
+        circle_marker_205509b5c88c3a61a207f0b93f584ae6.bindPopup(popup_d5ee78b78de90fd8c0be589d9d277e33)
+        ;
+
+        
+    
+    
+            var circle_marker_04d4b44b35b3b41b850bbacb752ffb0a = L.circleMarker(
+                [12.2958, 76.6394],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "green", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_0bc26b90bd88e9742df592d3f8d89a51 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_581ce6f03f51d7b2e4c28252c2b55ae0 = $(`<div id="html_581ce6f03f51d7b2e4c28252c2b55ae0" style="width: 100.0%; height: 100.0%;"><b>Mysuru, Karnataka</b><br>Current Crop: Soybean<br>Recommended Crop: Maize<br>Risk Level: Low<br>Consensus Risk: 26.2%<br>Top Options: Maize (74.0%), Soybean (14.1%), Cotton (4.8%)</div>`)[0];
+                popup_0bc26b90bd88e9742df592d3f8d89a51.setContent(html_581ce6f03f51d7b2e4c28252c2b55ae0);
+            
+        
+
+        circle_marker_04d4b44b35b3b41b850bbacb752ffb0a.bindPopup(popup_0bc26b90bd88e9742df592d3f8d89a51)
+        ;
+
+        
+    
+    
+            var circle_marker_0aa07299a4cae34140d4afbbf392457b = L.circleMarker(
+                [21.1458, 79.0882],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_b760b97373ca9d7f26d3bba90a8a4197 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_58dc5a178a02f73c9f97bcb24b6af0e2 = $(`<div id="html_58dc5a178a02f73c9f97bcb24b6af0e2" style="width: 100.0%; height: 100.0%;"><b>Nagpur, Maharashtra</b><br>Current Crop: Maize<br>Recommended Crop: Soybean<br>Risk Level: Medium<br>Consensus Risk: 59.3%<br>Top Options: Soybean (50.7%), Cotton (42.0%), Maize (3.8%)</div>`)[0];
+                popup_b760b97373ca9d7f26d3bba90a8a4197.setContent(html_58dc5a178a02f73c9f97bcb24b6af0e2);
+            
+        
+
+        circle_marker_0aa07299a4cae34140d4afbbf392457b.bindPopup(popup_b760b97373ca9d7f26d3bba90a8a4197)
+        ;
+
+        
+    
+    
+            var circle_marker_e1a4fed1a96608b6ae000533d8fb554b = L.circleMarker(
+                [25.5941, 85.1376],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_4fa26b538168380a79c408d4cb869052 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_4af9ab427a0034b2492389f771257803 = $(`<div id="html_4af9ab427a0034b2492389f771257803" style="width: 100.0%; height: 100.0%;"><b>Patna, Bihar</b><br>Current Crop: Maize<br>Recommended Crop: Rice<br>Risk Level: Medium<br>Consensus Risk: 63.6%<br>Top Options: Rice (85.1%), Maize (12.4%), Soybean (1.1%)</div>`)[0];
+                popup_4fa26b538168380a79c408d4cb869052.setContent(html_4af9ab427a0034b2492389f771257803);
+            
+        
+
+        circle_marker_e1a4fed1a96608b6ae000533d8fb554b.bindPopup(popup_4fa26b538168380a79c408d4cb869052)
+        ;
+
+        
+    
+    
+            var circle_marker_f136ea97a44ed0a33fdb201cb346ff98 = L.circleMarker(
+                [18.5204, 73.8567],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "red", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_70c70c532d31e2fee3db5d57951e1072 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_a82dc2424eb02c4df11dfe63539da43a = $(`<div id="html_a82dc2424eb02c4df11dfe63539da43a" style="width: 100.0%; height: 100.0%;"><b>Pune, Maharashtra</b><br>Current Crop: Mustard<br>Recommended Crop: Wheat<br>Risk Level: High<br>Consensus Risk: 77.0%<br>Top Options: Wheat (49.9%), Chickpea (27.1%), Mustard (21.4%)</div>`)[0];
+                popup_70c70c532d31e2fee3db5d57951e1072.setContent(html_a82dc2424eb02c4df11dfe63539da43a);
+            
+        
+
+        circle_marker_f136ea97a44ed0a33fdb201cb346ff98.bindPopup(popup_70c70c532d31e2fee3db5d57951e1072)
+        ;
+
+        
+    
+    
+            var circle_marker_ed7431a1cf1e4d87e2dbcf9607be0b1b = L.circleMarker(
+                [17.9689, 79.5941],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "orange", "fillOpacity": 0.8, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 8, "stroke": true, "weight": 3}
+            ).addTo(map_3d199a16f139db83ef6591d4f647556a);
+        
+    
+        var popup_cc351eb6cb097d16d2aeb30dc33ccbd2 = L.popup({
+  "maxWidth": 320,
+});
+
+        
+            
+                var html_40ea1255e60510c2886eb0a89b05b066 = $(`<div id="html_40ea1255e60510c2886eb0a89b05b066" style="width: 100.0%; height: 100.0%;"><b>Warangal, Telangana</b><br>Current Crop: Rice<br>Recommended Crop: Cotton<br>Risk Level: Medium<br>Consensus Risk: 65.2%<br>Top Options: Cotton (55.5%), Soybean (33.7%), Maize (6.8%)</div>`)[0];
+                popup_cc351eb6cb097d16d2aeb30dc33ccbd2.setContent(html_40ea1255e60510c2886eb0a89b05b066);
+            
+        
+
+        circle_marker_ed7431a1cf1e4d87e2dbcf9607be0b1b.bindPopup(popup_cc351eb6cb097d16d2aeb30dc33ccbd2)
+        ;
+
+        
+    
+</script>
+</html>

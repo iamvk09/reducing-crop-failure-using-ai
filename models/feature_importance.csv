@@ -1,0 +1,58 @@
+Feature,Importance
+num__SuitabilityScore,0.11701016972503053
+num__YieldIndex,0.10033638568598305
+num__NDVI_Flowering,0.0952293195704155
+num__WaterStress,0.08837058382052336
+num__PestRisk,0.06966725948408418
+num__Temperature,0.06945741641398209
+num__SoilMoisture,0.0685042812327036
+num__Rainfall,0.06837550705831895
+num__Humidity,0.06762019204570743
+num__Year,0.038219320409536385
+cat__Crop_Mustard,0.007861143133915983
+cat__SoilType_Black,0.0075628199456355015
+cat__IrrigationLevel_Low,0.007031176401536882
+cat__SoilType_Sandy,0.006840991265955455
+cat__Crop_Soybean,0.0065074114470404605
+cat__IrrigationLevel_High,0.006463745247795453
+cat__IrrigationLevel_Medium,0.0063392548334062025
+cat__Season_Rabi,0.0057808037200076014
+cat__State_Rajasthan,0.005669394516874466
+cat__Crop_Wheat,0.00551774549093533
+cat__Crop_Chickpea,0.005516767298619215
+cat__SoilType_Medium Black,0.005485689830385296
+cat__Crop_Millet,0.005388574184134306
+cat__Crop_Groundnut,0.005372362852094482
+cat__Region_Central Plateau,0.005202610863197606
+cat__Season_Kharif,0.005201738671937619
+cat__SoilType_Alluvial,0.0050785929991792565
+cat__Season_Zaid,0.004954771371838716
+cat__State_Telangana,0.004937020608659611
+cat__SoilType_Sandy Loam,0.004925645846949664
+cat__Crop_Maize,0.004858373618616909
+cat__Region_Deccan Plateau,0.004714966296342902
+cat__State_Odisha,0.004602982001715912
+cat__Crop_Rice,0.0045306596825267125
+cat__State_Tamil Nadu,0.004497614061633588
+cat__SoilType_Clay Loam,0.004484703884215149
+cat__Region_Indo Gangetic Plains,0.004392927818523474
+cat__State_Madhya Pradesh,0.004236816774884346
+cat__Region_Southern Plateau,0.004171288796773452
+cat__State_Uttar Pradesh,0.004125345773410575
+cat__SoilType_Red Loam,0.00405497197129964
+cat__SoilType_Red Sandy Loam,0.004001854398856971
+cat__State_Karnataka,0.003984475436523879
+cat__Region_Western Plateau,0.00393263220834341
+cat__Region_Northwest Dryland,0.003894834573579356
+cat__Region_Coastal Delta,0.003856015791643276
+cat__State_Maharashtra,0.003652620522188807
+cat__Crop_Cotton,0.003631900258001912
+cat__State_West Bengal,0.002866419146389381
+cat__SoilType_Loam,0.0028448429889116225
+cat__State_Bihar,0.0027841092806725172
+cat__Region_Semi Arid West,0.0027530662232961817
+cat__State_Gujarat,0.0027364085721528274
+cat__State_Punjab,0.0027011552829836775
+cat__SoilType_Loamy Sand,0.0026296653469097026
+cat__Region_Northwest Irrigated,0.0024088268549294052
+cat__Region_Humid East,0.002221826458290261
