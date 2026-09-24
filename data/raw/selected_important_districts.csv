@@ -1,0 +1,351 @@
+State,District,Latitude,Longitude,ResolvedLocation,CoordinateSource,Production,SelectionMethod,SelectionRank
+Andhra Pradesh,West godavari,16.899804422856924,81.40941945782606,West Godavari,geoBoundaries India ADM2 centroid,15546158.0,Top total DES-reported production across available reporting years,1
+Andhra Pradesh,East godavari,17.194085358659937,82.01404957496521,East Godavari,geoBoundaries India ADM2 centroid,14329971.0,Top total DES-reported production across available reporting years,2
+Punjab,Sangrur,30.211755355744923,75.8702448008922,Sangrur,geoBoundaries India ADM2 centroid,13374000.0,Top total DES-reported production across available reporting years,3
+West Bengal,Birbhum,23.95370624123209,87.66555570909533,Birbhum,geoBoundaries India ADM2 centroid,12603294.0,Top total DES-reported production across available reporting years,4
+Punjab,Ludhiana,30.804715545305687,75.83614321635899,Ludhiana,geoBoundaries India ADM2 centroid,12018000.0,Top total DES-reported production across available reporting years,5
+West Bengal,Bankura,23.141454166601765,87.13443709055578,Bankura,geoBoundaries India ADM2 centroid,10716133.0,Top total DES-reported production across available reporting years,6
+West Bengal,Murshidabad,24.173210084862134,88.23199173358435,Murshidabad,geoBoundaries India ADM2 centroid,10714917.0,Top total DES-reported production across available reporting years,7
+Andhra Pradesh,Krishna,16.565652824874974,80.80563020824229,Krishna,geoBoundaries India ADM2 centroid,10066920.0,Top total DES-reported production across available reporting years,8
+Punjab,Patiala,30.280251708225915,76.35158282406285,Patiala,geoBoundaries India ADM2 centroid,9628000.0,Top total DES-reported production across available reporting years,9
+Telangana,Nalgonda,16.8759835692122,79.20093706029775,Nalgonda,geoBoundaries India ADM2 centroid,9303026.0,Top total DES-reported production across available reporting years,10
+Telangana,Nizamabad,18.69592319300049,78.21309030263654,Nizamabad,geoBoundaries India ADM2 centroid,8806141.0,Top total DES-reported production across available reporting years,11
+Punjab,Moga,30.76240710875285,75.17424180496198,Moga,geoBoundaries India ADM2 centroid,8509000.0,Top total DES-reported production across available reporting years,12
+Bihar,Rohtas,24.981550627226348,84.0246058110957,Rohtas,geoBoundaries India ADM2 centroid,8338701.0,Top total DES-reported production across available reporting years,13
+Andhra Pradesh,Guntur,16.294607741688004,80.09716925860874,Guntur,geoBoundaries India ADM2 centroid,8092759.0,Top total DES-reported production across available reporting years,14
+Odisha,Bargarh,21.220601346141414,83.35327253003422,Bargarh,geoBoundaries India ADM2 centroid,7580656.0,Top total DES-reported production across available reporting years,15
+West Bengal,Nadia,23.47535291954276,88.5163386637047,Nadia,geoBoundaries India ADM2 centroid,7296860.0,Top total DES-reported production across available reporting years,16
+Punjab,Bathinda,30.182541569135864,75.04161353165237,Bathinda,geoBoundaries India ADM2 centroid,7164000.0,Top total DES-reported production across available reporting years,17
+Chhattisgarh,Janjgir-champa,21.894846877485346,82.73208484364048,Janjgir-Champa,geoBoundaries India ADM2 centroid,7082081.0,Top total DES-reported production across available reporting years,18
+Punjab,Jalandhar,31.212063308313816,75.56837041116721,Jalandhar,geoBoundaries India ADM2 centroid,6988000.0,Top total DES-reported production across available reporting years,19
+Tamil Nadu,Thanjavur,10.668328201255331,79.24425811222847,Thanjavur,geoBoundaries India ADM2 centroid,6958012.0,Top total DES-reported production across available reporting years,20
+Telangana,Karimnagar,18.37597097917155,79.24486572878071,Karimnagar,geoBoundaries India ADM2 centroid,6949859.0,Top total DES-reported production across available reporting years,21
+Odisha,Mayurbhanj,21.89486405126787,86.41200995195561,Mayurbhanj,geoBoundaries India ADM2 centroid,6806573.0,Top total DES-reported production across available reporting years,22
+Tamil Nadu,Thiruvarur,10.680434087460858,79.53687063921394,Thiruvarur,geoBoundaries India ADM2 centroid,6729305.0,Top total DES-reported production across available reporting years,23
+Punjab,Muktsar,30.29799288157158,74.54064722092657,Muktsar,geoBoundaries India ADM2 centroid,6718000.0,Top total DES-reported production across available reporting years,24
+Punjab,Tarn taran,31.336883885989973,74.84178821790002,Tarn Taran,geoBoundaries India ADM2 centroid,6695000.0,Top total DES-reported production across available reporting years,25
+West Bengal,Maldah,25.13952004400626,88.09010251561412,Maldah,geoBoundaries India ADM2 centroid,6693045.0,Top total DES-reported production across available reporting years,26
+Uttar Pradesh,Shahjahanpur,27.95984145689227,79.82905051426162,Shahjahanpur,geoBoundaries India ADM2 centroid,6546249.0,Top total DES-reported production across available reporting years,27
+Karnataka,Raichur,16.090359069268082,76.89388101179306,Raichur,geoBoundaries India ADM2 centroid,6538761.0,Top total DES-reported production across available reporting years,28
+Telangana,Suryapet,17.08432877193315,79.75774206737448,Suryapet,geoBoundaries India ADM2 centroid,6411500.0,Top total DES-reported production across available reporting years,29
+Haryana,Karnal,29.687971179833628,76.89486871073805,Karnal,geoBoundaries India ADM2 centroid,6323760.0,Top total DES-reported production across available reporting years,30
+Madhya Pradesh,Balaghat,21.880829226126544,80.35513151961167,Balaghat,geoBoundaries India ADM2 centroid,6083741.0,Top total DES-reported production across available reporting years,31
+Haryana,Kaithal,29.81205698466412,76.4170442443173,Kaithal,geoBoundaries India ADM2 centroid,6048140.0,Top total DES-reported production across available reporting years,32
+Punjab,Gurdaspur,31.91616985571162,75.29371377844795,Gurdaspur,geoBoundaries India ADM2 centroid,5910000.0,Top total DES-reported production across available reporting years,33
+Punjab,Amritsar,31.706156026128703,74.900497452654,Amritsar,geoBoundaries India ADM2 centroid,5842000.0,Top total DES-reported production across available reporting years,34
+Odisha,Ganjam,19.62772937048724,84.67371936061599,Ganjam,geoBoundaries India ADM2 centroid,5682727.0,Top total DES-reported production across available reporting years,35
+Madhya Pradesh,Rewa,24.751558992774736,81.58928308171846,Rewa,geoBoundaries India ADM2 centroid,5498486.0,Top total DES-reported production across available reporting years,36
+Tamil Nadu,Tiruvannamalai,12.43367184935026,79.16865625344214,Tiruvannamalai,geoBoundaries India ADM2 centroid,5461047.0,Top total DES-reported production across available reporting years,37
+Punjab,Barnala,30.38647546804211,75.50068209451841,Barnala,geoBoundaries India ADM2 centroid,5445000.0,Top total DES-reported production across available reporting years,38
+Odisha,Kalahandi,19.868253526215224,83.10904887421434,Kalahandi,geoBoundaries India ADM2 centroid,5403517.0,Top total DES-reported production across available reporting years,39
+Odisha,Baleshwar,21.496717791481057,86.91315627222545,Baleshwar,geoBoundaries India ADM2 centroid,5354238.0,Top total DES-reported production across available reporting years,40
+Uttar Pradesh,Kheri,28.122075348503618,80.66726067937807,Kheri,geoBoundaries India ADM2 centroid,5274159.0,Top total DES-reported production across available reporting years,41
+Uttar Pradesh,Barabanki,26.937725863455952,81.33411076754338,Bara Banki,geoBoundaries India ADM2 centroid,5240997.0,Top total DES-reported production across available reporting years,42
+Tamil Nadu,Cuddalore,11.536192682252246,79.45270541498587,Cuddalore,geoBoundaries India ADM2 centroid,5171590.0,Top total DES-reported production across available reporting years,43
+Andhra Pradesh,Srikakulam,18.59682559297307,84.01910339523481,Srikakulam,geoBoundaries India ADM2 centroid,5095746.0,Top total DES-reported production across available reporting years,44
+Haryana,Kurukshetra,30.039225069444363,76.78499102792249,Kurukshetra,geoBoundaries India ADM2 centroid,5084240.0,Top total DES-reported production across available reporting years,45
+Chhattisgarh,Dhamtari,20.556712264350317,81.81104693578898,Dhamtari,geoBoundaries India ADM2 centroid,5028718.0,Top total DES-reported production across available reporting years,46
+Karnataka,Bellary,15.109483515695084,76.5361417703094,Bellary,geoBoundaries India ADM2 centroid,5022049.0,Top total DES-reported production across available reporting years,47
+Telangana,Khammam,17.209373113534046,80.3653938941215,Khammam,geoBoundaries India ADM2 centroid,4903803.0,Top total DES-reported production across available reporting years,48
+Punjab,Kapurthala,31.353051379854953,75.40345789853968,Kapurthala,geoBoundaries India ADM2 centroid,4891000.0,Top total DES-reported production across available reporting years,49
+Uttar Pradesh,Azamgarh,26.046237665685055,83.07974850402874,Azamgarh,geoBoundaries India ADM2 centroid,4867094.0,Top total DES-reported production across available reporting years,50
+Haryana,Fatehabad,29.575846481200724,75.58057912462931,Fatehabad,geoBoundaries India ADM2 centroid,4807270.0,Top total DES-reported production across available reporting years,51
+Madhya Pradesh,Satna,24.5304600865736,80.83124806117443,Satna,geoBoundaries India ADM2 centroid,4783676.0,Top total DES-reported production across available reporting years,52
+Chhattisgarh,Mahasamund,21.20414839495232,82.60457202864289,Mahasamund,geoBoundaries India ADM2 centroid,4700488.0,Top total DES-reported production across available reporting years,53
+Punjab,Faridkot,30.610222868303147,74.78160165200046,Faridkot,geoBoundaries India ADM2 centroid,4694000.0,Top total DES-reported production across available reporting years,54
+Chhattisgarh,Rajnandgaon,21.038706096606944,80.81968353192259,Rajnandgaon,geoBoundaries India ADM2 centroid,4673933.0,Top total DES-reported production across available reporting years,55
+Punjab,Mansa,29.90820713218236,75.43996956110492,Mansa,geoBoundaries India ADM2 centroid,4669000.0,Top total DES-reported production across available reporting years,56
+Uttar Pradesh,Siddharth nagar,27.273430000780333,82.86344391918092,Siddharthnagar,geoBoundaries India ADM2 centroid,4567327.0,Top total DES-reported production across available reporting years,57
+Uttar Pradesh,Pilibhit,28.534750413534574,79.97523016979608,Pilibhit,geoBoundaries India ADM2 centroid,4556421.0,Top total DES-reported production across available reporting years,58
+Chhattisgarh,Raipur,21.284527823259378,81.8203049299982,Raipur,geoBoundaries India ADM2 centroid,4378054.0,Top total DES-reported production across available reporting years,59
+Uttar Pradesh,Allahabad,25.303092486865996,81.96136300049122,Allahabad,geoBoundaries India ADM2 centroid,4317839.0,Top total DES-reported production across available reporting years,60
+Chhattisgarh,Baloda bazar,21.553992751183127,82.30810820147455,Baloda Bazar,geoBoundaries India ADM2 centroid,4248794.0,Top total DES-reported production across available reporting years,61
+Odisha,Kendujhar,21.537622517759782,85.7047895887223,Kendujhar,geoBoundaries India ADM2 centroid,4179442.0,Top total DES-reported production across available reporting years,62
+Telangana,Medak,17.955394591515116,78.25685850516787,Medak,geoBoundaries India ADM2 centroid,4170426.0,Top total DES-reported production across available reporting years,63
+Chhattisgarh,Balod,20.738523566543563,81.18871354929118,Balod,geoBoundaries India ADM2 centroid,4104935.0,Top total DES-reported production across available reporting years,64
+West Bengal,Jalpaiguri,26.68663276460142,88.76984600702465,Jalpaiguri,geoBoundaries India ADM2 centroid,4093743.0,Top total DES-reported production across available reporting years,65
+Uttar Pradesh,Sitapur,27.517779275777812,80.85752661253565,Sitapur,geoBoundaries India ADM2 centroid,4064225.0,Top total DES-reported production across available reporting years,66
+Assam,Nagaon,26.36289200858228,92.7620466046533,Nagaon,geoBoundaries India ADM2 centroid,4061289.0,Top total DES-reported production across available reporting years,67
+Haryana,Jind,29.433607142669636,76.30787005277395,Jind,geoBoundaries India ADM2 centroid,4025580.0,Top total DES-reported production across available reporting years,68
+Tamil Nadu,Nagapattinam,10.577816152444253,79.763630723555,Nagapattinam,geoBoundaries India ADM2 centroid,4006493.0,Top total DES-reported production across available reporting years,69
+Telangana,Kamareddy,18.324270839097633,78.06246461622374,Kamareddy,geoBoundaries India ADM2 centroid,3997613.0,Top total DES-reported production across available reporting years,70
+Madhya Pradesh,Hoshangabad,22.588290315175744,77.99298020647704,Hoshangabad,geoBoundaries India ADM2 centroid,3972358.0,Top total DES-reported production across available reporting years,71
+Madhya Pradesh,Seoni,22.320582094298345,79.68891298203496,Seoni,geoBoundaries India ADM2 centroid,3957194.0,Top total DES-reported production across available reporting years,72
+Uttar Pradesh,Bareilly,28.453571361680265,79.42376724570721,Bareilly,geoBoundaries India ADM2 centroid,3951692.0,Top total DES-reported production across available reporting years,73
+Madhya Pradesh,Raisen,23.21703241589242,78.12248960030772,Raisen,geoBoundaries India ADM2 centroid,3951156.0,Top total DES-reported production across available reporting years,74
+Uttar Pradesh,Bahraich,27.700616502017823,81.49463590258472,Bahraich,geoBoundaries India ADM2 centroid,3931803.0,Top total DES-reported production across available reporting years,75
+Punjab,Fazilka,30.326246180044457,74.18889679099792,Fazilka,geoBoundaries India ADM2 centroid,3899000.0,Top total DES-reported production across available reporting years,76
+Bihar,Kaimur (bhabua),24.989894200148154,83.60379742078108,Kaimur (Bhabua),geoBoundaries India ADM2 centroid,3878724.0,Top total DES-reported production across available reporting years,77
+Tamil Nadu,Thiruvallur,13.239632855425251,79.94463523619392,Thiruvallur,geoBoundaries India ADM2 centroid,3861666.0,Top total DES-reported production across available reporting years,78
+Uttar Pradesh,Ghazipur,25.622575217758257,83.5561391301021,Ghazipur,geoBoundaries India ADM2 centroid,3813876.0,Top total DES-reported production across available reporting years,79
+Punjab,Fatehgarh sahib,30.64215065820013,76.37674391886118,Fatehgarh Sahib,geoBoundaries India ADM2 centroid,3800000.0,Top total DES-reported production across available reporting years,80
+Uttar Pradesh,Rampur,28.79440181372785,79.12317091561688,Rampur,geoBoundaries India ADM2 centroid,3734683.0,Top total DES-reported production across available reporting years,81
+Telangana,Siddipet,18.011431668436906,78.85431700103547,Siddipet,geoBoundaries India ADM2 centroid,3723707.0,Top total DES-reported production across available reporting years,82
+Uttar Pradesh,Hardoi,27.328980555747663,80.1628861634464,Hardoi,geoBoundaries India ADM2 centroid,3694885.0,Top total DES-reported production across available reporting years,83
+Odisha,Balangir,20.591022321491803,83.17416797972356,Balangir,geoBoundaries India ADM2 centroid,3663308.0,Top total DES-reported production across available reporting years,84
+Jharkhand,Ranchi,23.326559689587214,85.37415849890922,Ranchi,geoBoundaries India ADM2 centroid,3656949.0,Top total DES-reported production across available reporting years,85
+Jharkhand,Gumla,23.0880170079007,84.52464878356678,Gumla,geoBoundaries India ADM2 centroid,3644173.0,Top total DES-reported production across available reporting years,86
+Uttar Pradesh,Jaunpur,25.746133391813807,82.57593617135512,Jaunpur,geoBoundaries India ADM2 centroid,3625351.0,Top total DES-reported production across available reporting years,87
+Madhya Pradesh,Katni,23.751264132362387,80.408218689222,Katni,geoBoundaries India ADM2 centroid,3617853.0,Top total DES-reported production across available reporting years,88
+Andhra Pradesh,Kurnool,15.53513853914728,78.00685302300933,Kurnool,geoBoundaries India ADM2 centroid,3611930.0,Top total DES-reported production across available reporting years,89
+Maharashtra,Bhandara,21.110095618610895,79.76751026633377,Bhandara,geoBoundaries India ADM2 centroid,3577917.0,Top total DES-reported production across available reporting years,90
+Andhra Pradesh,Vizianagaram,18.46330814569388,83.38338455199599,Vizianagaram,geoBoundaries India ADM2 centroid,3527275.0,Top total DES-reported production across available reporting years,91
+Uttar Pradesh,Chandauli,25.137616688245384,83.26096988991786,Chandauli,geoBoundaries India ADM2 centroid,3516164.0,Top total DES-reported production across available reporting years,92
+Odisha,Sundargarh,22.08016214169095,84.51032976245804,Sundargarh,geoBoundaries India ADM2 centroid,3515029.0,Top total DES-reported production across available reporting years,93
+Gujarat,Ahmadabad,22.761087559557858,72.24774386705248,Ahmadabad,geoBoundaries India ADM2 centroid,3484210.0,Top total DES-reported production across available reporting years,94
+Uttar Pradesh,Gorakhpur,26.657933363649843,83.36138710543345,Gorakhpur,geoBoundaries India ADM2 centroid,3477406.0,Top total DES-reported production across available reporting years,95
+Telangana,Peddapalli,18.624808432708605,79.45751168510544,Peddapalli,geoBoundaries India ADM2 centroid,3410123.0,Top total DES-reported production across available reporting years,96
+Haryana,Ambala,30.324767034623605,76.94225953222933,Ambala,geoBoundaries India ADM2 centroid,3399070.0,Top total DES-reported production across available reporting years,97
+Odisha,Bhadrak,20.98681828107341,86.6195769186693,Bhadrak,geoBoundaries India ADM2 centroid,3365371.0,Top total DES-reported production across available reporting years,98
+Odisha,Koraput,18.814848720083674,82.72099035697273,Koraput,geoBoundaries India ADM2 centroid,3363671.0,Top total DES-reported production across available reporting years,99
+Madhya Pradesh,Mandla,22.637601835407033,80.50142516171897,Mandla,geoBoundaries India ADM2 centroid,3320352.0,Top total DES-reported production across available reporting years,100
+Bihar,Pashchim champaran,27.07945030115401,84.34213730440152,Pashchim Champaran,geoBoundaries India ADM2 centroid,3284930.0,Top total DES-reported production across available reporting years,101
+West Bengal,Jhargram,22.36370402361528,86.95702203884754,Jhargram,geoBoundaries India ADM2 centroid,3281390.0,Top total DES-reported production across available reporting years,102
+Uttar Pradesh,Ambedkar nagar,26.420150201303155,82.67086829724511,Ambedkar Nagar,geoBoundaries India ADM2 centroid,3248070.0,Top total DES-reported production across available reporting years,103
+Maharashtra,Kolhapur,16.47040201325805,74.16120297329063,Kolhapur,geoBoundaries India ADM2 centroid,3245544.0,Top total DES-reported production across available reporting years,104
+Haryana,Sirsa,29.614625325380132,74.90137315228495,Sirsa,geoBoundaries India ADM2 centroid,3228140.0,Top total DES-reported production across available reporting years,105
+Gujarat,Kheda,22.83767140827851,72.95452166514428,Kheda,geoBoundaries India ADM2 centroid,3212529.0,Top total DES-reported production across available reporting years,106
+Madhya Pradesh,Jabalpur,23.23191548281415,79.97801703174895,Jabalpur,geoBoundaries India ADM2 centroid,3142119.0,Top total DES-reported production across available reporting years,107
+Bihar,Bhojpur,25.478805817857413,84.53823392440381,Bhojpur,geoBoundaries India ADM2 centroid,3118003.0,Top total DES-reported production across available reporting years,108
+Haryana,Yamunanagar,30.233989970405034,77.30308320120628,Yamunanagar,geoBoundaries India ADM2 centroid,3114890.0,Top total DES-reported production across available reporting years,109
+Assam,Sonitpur,26.75947421997086,92.71090993456947,Sonitpur,geoBoundaries India ADM2 centroid,3087139.0,Top total DES-reported production across available reporting years,110
+Karnataka,Yadgir,16.62710854607476,76.9143386258115,Yadgir,geoBoundaries India ADM2 centroid,3085965.0,Top total DES-reported production across available reporting years,111
+Uttar Pradesh,Gonda,27.08414223921702,82.02555265097673,Gonda,geoBoundaries India ADM2 centroid,3020446.0,Top total DES-reported production across available reporting years,112
+Chhattisgarh,Durg,21.213389828351666,81.38535024911378,Durg,geoBoundaries India ADM2 centroid,2996762.0,Top total DES-reported production across available reporting years,113
+Gujarat,Anand,22.457212949419972,72.7923386388295,Anand,geoBoundaries India ADM2 centroid,2959796.0,Top total DES-reported production across available reporting years,114
+Odisha,Cuttack,20.451457230271558,85.70405911514223,Cuttack,geoBoundaries India ADM2 centroid,2946196.0,Top total DES-reported production across available reporting years,115
+Uttar Pradesh,Kushi nagar,26.86178976839776,83.93475059728844,Kushinagar,geoBoundaries India ADM2 centroid,2936183.0,Top total DES-reported production across available reporting years,116
+Odisha,Sambalpur,21.453578404950512,84.27575285918188,Sambalpur,geoBoundaries India ADM2 centroid,2925427.0,Top total DES-reported production across available reporting years,117
+Haryana,Sonipat,29.06027848095621,76.87827732943548,Sonipat,geoBoundaries India ADM2 centroid,2910100.0,Top total DES-reported production across available reporting years,118
+Tamil Nadu,Tirunelveli,8.573333354087374,77.6001297406504,Tirunelveli,geoBoundaries India ADM2 centroid,2898879.0,Top total DES-reported production across available reporting years,119
+Uttar Pradesh,Deoria,26.422669544917127,83.83663695494207,Deoria,geoBoundaries India ADM2 centroid,2866406.0,Top total DES-reported production across available reporting years,120
+Karnataka,Mysore,12.203853661509596,76.44525502665984,Mysore,geoBoundaries India ADM2 centroid,2815255.0,Top total DES-reported production across available reporting years,121
+Punjab,Hoshiarpur,31.625919871903577,75.86003515315858,Hoshiarpur,geoBoundaries India ADM2 centroid,2797000.0,Top total DES-reported production across available reporting years,122
+Uttar Pradesh,Ballia,25.875172298171925,84.10522222201254,Ballia,geoBoundaries India ADM2 centroid,2785414.0,Top total DES-reported production across available reporting years,123
+Assam,Barpeta,26.342567772881452,91.00320913384648,Barpeta,geoBoundaries India ADM2 centroid,2770359.0,Top total DES-reported production across available reporting years,124
+Uttar Pradesh,Basti,26.82122608592043,82.61721146716522,Basti,geoBoundaries India ADM2 centroid,2765891.0,Top total DES-reported production across available reporting years,125
+Bihar,Nalanda,25.21712383446418,85.45664747816339,Nalanda,geoBoundaries India ADM2 centroid,2755675.0,Top total DES-reported production across available reporting years,126
+Karnataka,Koppal,15.557816929188498,76.22363631368484,Koppal,geoBoundaries India ADM2 centroid,2749340.0,Top total DES-reported production across available reporting years,127
+Uttar Pradesh,Amethi,26.332810460242474,81.68734321458867,Amethi,geoBoundaries India ADM2 centroid,2748877.0,Top total DES-reported production across available reporting years,128
+Madhya Pradesh,Shahdol,23.620373387309286,81.47455557172326,Shahdol,geoBoundaries India ADM2 centroid,2743759.0,Top total DES-reported production across available reporting years,129
+Bihar,Banka,24.85107552852896,86.83509358196272,Banka,geoBoundaries India ADM2 centroid,2678420.0,Top total DES-reported production across available reporting years,130
+Bihar,Buxar,25.482963518021993,84.08260362202066,Buxar,geoBoundaries India ADM2 centroid,2674240.0,Top total DES-reported production across available reporting years,131
+Karnataka,Shimoga,14.041076863112622,75.22685628769975,Shimoga,geoBoundaries India ADM2 centroid,2664195.0,Top total DES-reported production across available reporting years,132
+Assam,Kamrup,26.10838140284657,91.40253369384278,Kamrup,geoBoundaries India ADM2 centroid,2660903.0,Top total DES-reported production across available reporting years,133
+Andhra Pradesh,Prakasam,15.621444276306642,79.51763208455112,Prakasam,geoBoundaries India ADM2 centroid,2654591.0,Top total DES-reported production across available reporting years,134
+Odisha,Puri,19.878600610314283,85.72123857871163,Puri,geoBoundaries India ADM2 centroid,2654384.0,Top total DES-reported production across available reporting years,135
+Assam,Golaghat,26.442567196744214,93.82791324118135,Golaghat,geoBoundaries India ADM2 centroid,2619513.0,Top total DES-reported production across available reporting years,136
+Bihar,Madhubani,26.402364732301564,86.22235987281796,Madhubani,geoBoundaries India ADM2 centroid,2611018.0,Top total DES-reported production across available reporting years,137
+Uttar Pradesh,Bulandshahr,28.34921344650938,77.99690901610967,Bulandshahr,geoBoundaries India ADM2 centroid,2598031.0,Top total DES-reported production across available reporting years,138
+Maharashtra,Gadchiroli,19.78550769907559,80.24134739387335,Gadchiroli,geoBoundaries India ADM2 centroid,2577431.0,Top total DES-reported production across available reporting years,139
+Uttar Pradesh,Faizabad,26.653725280234735,81.99890392276434,Faizabad,geoBoundaries India ADM2 centroid,2557016.0,Top total DES-reported production across available reporting years,140
+Uttar Pradesh,Sultanpur,26.242464904320958,82.22670088812941,Sultanpur,geoBoundaries India ADM2 centroid,2551695.0,Top total DES-reported production across available reporting years,141
+Chhattisgarh,Mungeli,22.188916223704798,81.71392757654601,Mungeli,geoBoundaries India ADM2 centroid,2521929.0,Top total DES-reported production across available reporting years,142
+Uttar Pradesh,Moradabad,28.91419416278176,78.78543566703095,Moradabad,geoBoundaries India ADM2 centroid,2420842.0,Top total DES-reported production across available reporting years,143
+Bihar,Gaya,24.705617712395693,84.94961000301579,Gaya,geoBoundaries India ADM2 centroid,2387308.0,Top total DES-reported production across available reporting years,144
+Uttar Pradesh,Rae bareli,26.20314244675157,81.19098124573802,Rae Bareli,geoBoundaries India ADM2 centroid,2372977.0,Top total DES-reported production across available reporting years,145
+Assam,Lakhimpur,27.1653286565423,94.11873814144253,Lakhimpur,geoBoundaries India ADM2 centroid,2360659.0,Top total DES-reported production across available reporting years,146
+Uttar Pradesh,Mirzapur,24.987143721053283,82.60942997550028,Mirzapur,geoBoundaries India ADM2 centroid,2331731.0,Top total DES-reported production across available reporting years,147
+Chhattisgarh,Jashpur,22.8008143237967,83.86623030811558,Jashpur,geoBoundaries India ADM2 centroid,2277871.0,Top total DES-reported production across available reporting years,148
+Assam,Dhubri,26.18167943665127,90.04995845631517,Dhubri,geoBoundaries India ADM2 centroid,2273701.0,Top total DES-reported production across available reporting years,149
+Odisha,Dhenkanal,20.82691996896052,85.5307779767147,Dhenkanal,geoBoundaries India ADM2 centroid,2271514.0,Top total DES-reported production across available reporting years,150
+Tamil Nadu,Pudukkottai,10.360455939309238,78.87969201213394,Pudukkottai,geoBoundaries India ADM2 centroid,2261541.0,Top total DES-reported production across available reporting years,151
+Kerala,Palakkad,10.795980686213237,76.55898562527551,Palakkad,geoBoundaries India ADM2 centroid,2234228.0,Top total DES-reported production across available reporting years,152
+Odisha,Kendrapara,20.55336933637808,86.60560755930887,Kendrapara,geoBoundaries India ADM2 centroid,2213990.0,Top total DES-reported production across available reporting years,153
+Uttar Pradesh,Fatehpur,25.87355913005714,80.80736287437959,Fatehpur,geoBoundaries India ADM2 centroid,2212336.0,Top total DES-reported production across available reporting years,154
+Chhattisgarh,Bastar,19.106506565126733,81.87601599713594,Bastar,geoBoundaries India ADM2 centroid,2203897.0,Top total DES-reported production across available reporting years,155
+Assam,Cachar,24.811453468134726,92.8539962793535,Cachar,geoBoundaries India ADM2 centroid,2193289.0,Top total DES-reported production across available reporting years,156
+Maharashtra,Ratnagiri,17.273360949916974,73.4573270402005,Ratnagiri,geoBoundaries India ADM2 centroid,2189594.0,Top total DES-reported production across available reporting years,157
+Tamil Nadu,Tiruchirappalli,10.890111046963298,78.57082247521743,Tiruchirappalli,geoBoundaries India ADM2 centroid,2163230.0,Top total DES-reported production across available reporting years,158
+Uttar Pradesh,Aligarh,27.91690295048742,78.06375670623694,Aligarh,geoBoundaries India ADM2 centroid,2163034.0,Top total DES-reported production across available reporting years,159
+Haryana,Panipat,29.33331926793569,76.9269216882411,Panipat,geoBoundaries India ADM2 centroid,2159940.0,Top total DES-reported production across available reporting years,160
+Odisha,Malkangiri,18.258820899133514,81.95638892449928,Malkangiri,geoBoundaries India ADM2 centroid,2124256.0,Top total DES-reported production across available reporting years,161
+Bihar,Katihar,25.546585243866723,87.64701368329604,Katihar,geoBoundaries India ADM2 centroid,2113728.0,Top total DES-reported production across available reporting years,162
+Andhra Pradesh,Chittoor,13.469107037160565,79.01195995829157,Chittoor,geoBoundaries India ADM2 centroid,2104643.0,Top total DES-reported production across available reporting years,163
+Madhya Pradesh,Anuppur,23.03972518408522,81.67486894794472,Anuppur,geoBoundaries India ADM2 centroid,2100748.0,Top total DES-reported production across available reporting years,164
+Madhya Pradesh,Gwalior,26.037657275407717,78.14866872441542,Gwalior,geoBoundaries India ADM2 centroid,2075895.0,Top total DES-reported production across available reporting years,165
+Assam,Baksa,26.661941404463416,91.36089394006692,Baksa,geoBoundaries India ADM2 centroid,2058258.0,Top total DES-reported production across available reporting years,166
+Odisha,Jajapur,20.852204133904696,86.1486146649352,Jajapur,geoBoundaries India ADM2 centroid,2041211.0,Top total DES-reported production across available reporting years,167
+Uttar Pradesh,Unnao,26.60936123937366,80.55960119285953,Unnao,geoBoundaries India ADM2 centroid,2033662.0,Top total DES-reported production across available reporting years,168
+Telangana,Mahabubabad,17.668132370991245,79.98355032263227,Mahabubabad,geoBoundaries India ADM2 centroid,2007038.0,Top total DES-reported production across available reporting years,169
+Uttar Pradesh,Mau,26.040465068290445,83.5749461708136,Mau,geoBoundaries India ADM2 centroid,2006613.0,Top total DES-reported production across available reporting years,170
+Telangana,Wanaparthy,16.29211358408942,78.03518550454605,Wanaparthy,geoBoundaries India ADM2 centroid,1999071.0,Top total DES-reported production across available reporting years,171
+Karnataka,Mandya,12.613320775034936,76.79790282424729,Mandya,geoBoundaries India ADM2 centroid,1998896.0,Top total DES-reported production across available reporting years,172
+Assam,Goalpara,26.05501351502396,90.60475686987208,Goalpara,geoBoundaries India ADM2 centroid,1976560.0,Top total DES-reported production across available reporting years,173
+Bihar,Nawada,24.823215859244563,85.59125846794016,Nawada,geoBoundaries India ADM2 centroid,1974645.0,Top total DES-reported production across available reporting years,174
+Maharashtra,Chandrapur,20.118525449164885,79.44424659327971,Chandrapur,geoBoundaries India ADM2 centroid,1973171.0,Top total DES-reported production across available reporting years,175
+Haryana,Hisar,29.215555637421623,75.8159399845783,Hisar,geoBoundaries India ADM2 centroid,1964920.0,Top total DES-reported production across available reporting years,176
+Tamil Nadu,Ramanathapuram,9.432814391662442,78.69099581033717,Ramanathapuram,geoBoundaries India ADM2 centroid,1957423.0,Top total DES-reported production across available reporting years,177
+Bihar,Supaul,26.24677623402656,86.80568697747948,Supaul,geoBoundaries India ADM2 centroid,1952175.0,Top total DES-reported production across available reporting years,178
+Maharashtra,Sindhudurg,16.13324170032783,73.73995825284901,Sindhudurg,geoBoundaries India ADM2 centroid,1941044.0,Top total DES-reported production across available reporting years,179
+Assam,Jorhat,26.6970177729198,94.27597235000901,Jorhat,geoBoundaries India ADM2 centroid,1925407.0,Top total DES-reported production across available reporting years,180
+Odisha,Khordha,20.097395587209764,85.51951912012466,Khordha,geoBoundaries India ADM2 centroid,1912110.0,Top total DES-reported production across available reporting years,181
+Uttar Pradesh,Budaun,28.080099859244935,79.03992075501775,Budaun,geoBoundaries India ADM2 centroid,1907453.0,Top total DES-reported production across available reporting years,182
+Chhattisgarh,Surguja,22.94050476403596,83.1234885604557,Surguja,geoBoundaries India ADM2 centroid,1906972.0,Top total DES-reported production across available reporting years,183
+Assam,Sivasagar,26.96097397952464,94.66070291122844,Sivasagar,geoBoundaries India ADM2 centroid,1888742.0,Top total DES-reported production across available reporting years,184
+Odisha,Jagatsinghapur,20.219122980344284,86.33997279879982,Jagatsinghapur,geoBoundaries India ADM2 centroid,1885520.0,Top total DES-reported production across available reporting years,185
+Assam,Udalguri,26.727490582661876,92.03620378964465,Udalguri,geoBoundaries India ADM2 centroid,1875013.0,Top total DES-reported production across available reporting years,186
+Madhya Pradesh,Singrauli,24.216764348185226,82.40731145397186,Singrauli,geoBoundaries India ADM2 centroid,1873341.0,Top total DES-reported production across available reporting years,187
+Odisha,Anugul,20.984792625875386,84.91328177246427,Anugul,geoBoundaries India ADM2 centroid,1873013.0,Top total DES-reported production across available reporting years,188
+Madhya Pradesh,Sidhi,24.213474084363952,81.82592117070692,Sidhi,geoBoundaries India ADM2 centroid,1865711.0,Top total DES-reported production across available reporting years,189
+Chhattisgarh,Surajpur,23.404385845169916,83.0153755879146,Surajpur,geoBoundaries India ADM2 centroid,1851231.0,Top total DES-reported production across available reporting years,190
+Jharkhand,Simdega,22.577372279573616,84.56732286271088,Simdega,geoBoundaries India ADM2 centroid,1837083.0,Top total DES-reported production across available reporting years,191
+Assam,Kokrajhar,26.533130687706176,90.14220147440761,Kokrajhar,geoBoundaries India ADM2 centroid,1833577.0,Top total DES-reported production across available reporting years,192
+Madhya Pradesh,Dindori,22.877890821001984,81.0385381829764,Dindori,geoBoundaries India ADM2 centroid,1830872.0,Top total DES-reported production across available reporting years,193
+Bihar,Patna,25.457315086209412,85.22783031659188,Patna,geoBoundaries India ADM2 centroid,1827507.0,Top total DES-reported production across available reporting years,194
+Assam,Nalbari,26.369860450062667,91.39048819414305,Nalbari,geoBoundaries India ADM2 centroid,1824321.0,Top total DES-reported production across available reporting years,195
+Uttar Pradesh,Mainpuri,27.185908747856537,79.0621870408195,Mainpuri,geoBoundaries India ADM2 centroid,1813290.0,Top total DES-reported production across available reporting years,196
+Bihar,Araria,26.190163289213633,87.3532125258929,Araria,geoBoundaries India ADM2 centroid,1791905.0,Top total DES-reported production across available reporting years,197
+Bihar,Purnia,25.814032494859596,87.41595936454422,Purnia,geoBoundaries India ADM2 centroid,1788805.0,Top total DES-reported production across available reporting years,198
+Gujarat,Valsad,20.41790765695821,73.12162829368454,Valsad,geoBoundaries India ADM2 centroid,1778917.0,Top total DES-reported production across available reporting years,199
+Odisha,Nayagarh,20.216130775178527,85.00308972709823,Nayagarh,geoBoundaries India ADM2 centroid,1771118.0,Top total DES-reported production across available reporting years,200
+Odisha,Nuapada,20.46664949468901,82.5781849821599,Nuapada,geoBoundaries India ADM2 centroid,1754145.0,Top total DES-reported production across available reporting years,201
+Assam,Darrang,26.44910647833907,92.0506182971225,Darrang,geoBoundaries India ADM2 centroid,1744336.0,Top total DES-reported production across available reporting years,202
+Telangana,Mancherial,18.998931470893275,79.51787250824215,Mancherial,geoBoundaries India ADM2 centroid,1715284.0,Top total DES-reported production across available reporting years,203
+Jharkhand,Giridih,24.295494989752193,86.09534682859008,Giridih,geoBoundaries India ADM2 centroid,1706249.0,Top total DES-reported production across available reporting years,204
+Bihar,Madhepura,25.8066174547812,86.89597541443901,Madhepura,geoBoundaries India ADM2 centroid,1688751.0,Top total DES-reported production across available reporting years,205
+Bihar,Samastipur,25.775604739493193,85.8579994805859,Samastipur,geoBoundaries India ADM2 centroid,1686746.0,Top total DES-reported production across available reporting years,206
+Chhattisgarh,Korba,22.531852913992733,82.61178492915082,Korba,geoBoundaries India ADM2 centroid,1683241.0,Top total DES-reported production across available reporting years,207
+Tamil Nadu,Madurai,9.921135982297585,78.00764766848086,Madurai,geoBoundaries India ADM2 centroid,1680336.0,Top total DES-reported production across available reporting years,208
+Maharashtra,Nagpur,21.176903604932296,79.08798452464222,Nagpur,geoBoundaries India ADM2 centroid,1657336.0,Top total DES-reported production across available reporting years,209
+Telangana,Bhadradri,17.762095929878033,80.84657972065064,Bhadradri,geoBoundaries India ADM2 centroid,1650797.0,Top total DES-reported production across available reporting years,210
+Jharkhand,Saraikela kharsawan,22.84537247038261,85.95112923502329,Saraikela-Kharsawan,geoBoundaries India ADM2 centroid,1646139.0,Top total DES-reported production across available reporting years,211
+Chhattisgarh,Kondagaon,19.740926778031344,81.66222129064265,Kondagaon,geoBoundaries India ADM2 centroid,1645196.0,Top total DES-reported production across available reporting years,212
+Gujarat,Tapi,21.190301342367448,73.63406478949939,Tapi,geoBoundaries India ADM2 centroid,1643985.0,Top total DES-reported production across available reporting years,213
+Bihar,Sitamarhi,26.58773489372849,85.55853887037676,Sitamarhi,geoBoundaries India ADM2 centroid,1634899.0,Top total DES-reported production across available reporting years,214
+Jharkhand,Dumka,24.3200077816534,87.26609493326073,Dumka,geoBoundaries India ADM2 centroid,1633223.0,Top total DES-reported production across available reporting years,215
+Uttar Pradesh,Auraiya,26.660820038807568,79.48318664840096,Auraiya,geoBoundaries India ADM2 centroid,1621980.0,Top total DES-reported production across available reporting years,216
+Bihar,Kishanganj,26.29840503826134,87.9336385318244,Kishanganj,geoBoundaries India ADM2 centroid,1607062.0,Top total DES-reported production across available reporting years,217
+Bihar,Muzaffarpur,26.157543679761915,85.31878777265553,Muzaffarpur,geoBoundaries India ADM2 centroid,1607014.0,Top total DES-reported production across available reporting years,218
+Madhya Pradesh,Panna,24.412164410416366,80.18697620930048,Panna,geoBoundaries India ADM2 centroid,1573091.0,Top total DES-reported production across available reporting years,219
+Gujarat,Navsari,20.813442008342037,73.09289941562466,Navsari,geoBoundaries India ADM2 centroid,1547318.0,Top total DES-reported production across available reporting years,220
+Punjab,Rupnagar,31.062392583211086,76.48936497955673,Rupnagar,geoBoundaries India ADM2 centroid,1544000.0,Top total DES-reported production across available reporting years,221
+Telangana,Jayashankar,18.506550367033572,79.93106138119137,Jayashankar,geoBoundaries India ADM2 centroid,1541535.0,Top total DES-reported production across available reporting years,222
+Uttar Pradesh,Saharanpur,29.948647453619632,77.54867631579216,Saharanpur,geoBoundaries India ADM2 centroid,1536814.0,Top total DES-reported production across available reporting years,223
+Chhattisgarh,Sukma,18.291987034023506,81.38399237046127,Sukma,geoBoundaries India ADM2 centroid,1533685.0,Top total DES-reported production across available reporting years,224
+Tamil Nadu,Vellore,12.892129654659849,78.92684624316286,Vellore,geoBoundaries India ADM2 centroid,1532741.0,Top total DES-reported production across available reporting years,225
+Uttar Pradesh,Etawah,26.76511778150844,79.09313972002985,Etawah,geoBoundaries India ADM2 centroid,1530990.0,Top total DES-reported production across available reporting years,226
+Assam,Dibrugarh,27.35041876130562,95.04564268242812,Dibrugarh,geoBoundaries India ADM2 centroid,1525583.0,Top total DES-reported production across available reporting years,227
+Bihar,Siwan,26.156163830942894,84.35986086298625,Siwan,geoBoundaries India ADM2 centroid,1524519.0,Top total DES-reported production across available reporting years,228
+Maharashtra,Palghar,19.791310136122302,73.01653111837898,Palghar,geoBoundaries India ADM2 centroid,1523688.0,Top total DES-reported production across available reporting years,229
+Jharkhand,Khunti,22.985000637196684,85.25320528182174,Khunti,geoBoundaries India ADM2 centroid,1515369.0,Top total DES-reported production across available reporting years,230
+Telangana,Nirmal,19.110950501801522,78.31857145448411,Nirmal,geoBoundaries India ADM2 centroid,1495360.0,Top total DES-reported production across available reporting years,231
+Odisha,Rayagada,19.362785417695886,83.51363965188698,Rayagada,geoBoundaries India ADM2 centroid,1493406.0,Top total DES-reported production across available reporting years,232
+Maharashtra,Thane,19.360012009145827,73.3278940298267,Thane,geoBoundaries India ADM2 centroid,1491297.0,Top total DES-reported production across available reporting years,233
+Tamil Nadu,Sivaganga,9.914243622032718,78.60200677924296,Sivaganga,geoBoundaries India ADM2 centroid,1434024.0,Top total DES-reported production across available reporting years,234
+Uttar Pradesh,Bijnor,29.390005736644564,78.39846417168401,Bijnor,geoBoundaries India ADM2 centroid,1414467.0,Top total DES-reported production across available reporting years,235
+Haryana,Rohtak,28.912222250205645,76.52823566366013,Rohtak,geoBoundaries India ADM2 centroid,1400120.0,Top total DES-reported production across available reporting years,236
+Karnataka,Belgaum,16.12025542732695,74.82486700833144,Belgaum,geoBoundaries India ADM2 centroid,1388649.0,Top total DES-reported production across available reporting years,237
+Tripura,South tripura,23.201213994548084,91.58252774166358,South Tripura,geoBoundaries India ADM2 centroid,1387375.0,Top total DES-reported production across available reporting years,238
+Assam,Karimganj,24.57685120969188,92.38136385479383,Karimganj,geoBoundaries India ADM2 centroid,1375437.0,Top total DES-reported production across available reporting years,239
+West Bengal,Alipurduar,26.63284217013993,89.46727372694298,Alipurduar,geoBoundaries India ADM2 centroid,1373490.0,Top total DES-reported production across available reporting years,240
+Telangana,Nagarkurnool,16.392837349831648,78.5979894603624,Nagarkurnool,geoBoundaries India ADM2 centroid,1329830.0,Top total DES-reported production across available reporting years,241
+Rajasthan,Bundi,25.481516061694165,75.79759871046295,Bundi,geoBoundaries India ADM2 centroid,1321998.0,Top total DES-reported production across available reporting years,242
+Madhya Pradesh,Sheopur,25.74069343167915,77.01202227979783,Sheopur,geoBoundaries India ADM2 centroid,1320977.0,Top total DES-reported production across available reporting years,243
+Bihar,Saharsa,25.817703199364804,86.57159975131997,Saharsa,geoBoundaries India ADM2 centroid,1316444.0,Top total DES-reported production across available reporting years,244
+Uttar Pradesh,Kanpur dehat,26.437643198852577,79.85861420171426,Kanpur Dehat,geoBoundaries India ADM2 centroid,1314800.0,Top total DES-reported production across available reporting years,245
+Maharashtra,Nashik,20.259696390335623,74.07264366441875,Nashik,geoBoundaries India ADM2 centroid,1310825.0,Top total DES-reported production across available reporting years,246
+Madhya Pradesh,Damoh,23.80880475855976,79.53130429684519,Damoh,geoBoundaries India ADM2 centroid,1302901.0,Top total DES-reported production across available reporting years,247
+Maharashtra,Pune,18.571659636138467,74.07002562778739,Pune,geoBoundaries India ADM2 centroid,1296249.0,Top total DES-reported production across available reporting years,248
+Tamil Nadu,Erode,11.517095390065101,77.41396132813408,Erode,geoBoundaries India ADM2 centroid,1273937.0,Top total DES-reported production across available reporting years,249
+Uttar Pradesh,Lucknow,26.841570700703237,80.90695595087674,Lucknow,geoBoundaries India ADM2 centroid,1265270.0,Top total DES-reported production across available reporting years,250
+Bihar,Darbhanga,26.08719175541917,86.0478020880389,Darbhanga,geoBoundaries India ADM2 centroid,1252548.0,Top total DES-reported production across available reporting years,251
+Telangana,Sangareddy,17.785977142843986,77.87429819521883,Sangareddy,geoBoundaries India ADM2 centroid,1244718.0,Top total DES-reported production across available reporting years,252
+Karnataka,Udupi,13.522149514093462,74.87521285794242,Udupi,geoBoundaries India ADM2 centroid,1238381.0,Top total DES-reported production across available reporting years,253
+Bihar,Saran,25.913214622510562,84.81564111334738,Saran,geoBoundaries India ADM2 centroid,1225145.0,Top total DES-reported production across available reporting years,254
+Uttar Pradesh,Kaushambi,25.497477705937275,81.41806298228751,Kaushambi,geoBoundaries India ADM2 centroid,1208284.0,Top total DES-reported production across available reporting years,255
+Uttar Pradesh,Varanasi,25.38869795669767,82.91767105175711,Varanasi,geoBoundaries India ADM2 centroid,1201325.0,Top total DES-reported production across available reporting years,256
+Gujarat,Surat,21.262249920894366,73.06937941690983,Surat,geoBoundaries India ADM2 centroid,1170782.0,Top total DES-reported production across available reporting years,257
+Madhya Pradesh,Umaria,23.55386507564919,80.97226374564003,Umaria,geoBoundaries India ADM2 centroid,1153992.0,Top total DES-reported production across available reporting years,258
+Assam,Dhemaji,27.574113623764195,94.76343796974326,Dhemaji,geoBoundaries India ADM2 centroid,1135302.0,Top total DES-reported production across available reporting years,259
+Tripura,Gomati,23.520677564038273,91.63393778534265,Gomati,geoBoundaries India ADM2 centroid,1129233.0,Top total DES-reported production across available reporting years,260
+Assam,Bongaigaon,26.371557724770835,90.62370551571762,Bongaigaon,geoBoundaries India ADM2 centroid,1126485.0,Top total DES-reported production across available reporting years,261
+Tamil Nadu,Krishnagiri,12.491139952045351,78.03368589836869,Krishnagiri,geoBoundaries India ADM2 centroid,1124027.0,Top total DES-reported production across available reporting years,262
+Jharkhand,Hazaribagh,24.039926461926033,85.41206304692868,Hazaribagh,geoBoundaries India ADM2 centroid,1122036.0,Top total DES-reported production across available reporting years,263
+Bihar,Gopalganj,26.435516243803168,84.36438870529396,Gopalganj,geoBoundaries India ADM2 centroid,1116136.0,Top total DES-reported production across available reporting years,264
+Nagaland,Dimapur,25.794290011726655,93.79685503815833,Dimapur,geoBoundaries India ADM2 centroid,1101787.0,Top total DES-reported production across available reporting years,265
+Kerala,Alappuzha,9.42945265215429,76.44763433360859,Alappuzha,geoBoundaries India ADM2 centroid,1100904.0,Top total DES-reported production across available reporting years,266
+Jharkhand,Deoghar,24.33686384371631,86.74432094303256,Deoghar,geoBoundaries India ADM2 centroid,1094323.0,Top total DES-reported production across available reporting years,267
+Madhya Pradesh,Sehore,22.985389290512007,77.1285020625946,Sehore,geoBoundaries India ADM2 centroid,1091137.0,Top total DES-reported production across available reporting years,268
+Bihar,Jamui,24.781752513141903,86.28882401062677,Jamui,geoBoundaries India ADM2 centroid,1085515.0,Top total DES-reported production across available reporting years,269
+Assam,Hailakandi,24.492621957305136,92.58882510462635,Hailakandi,geoBoundaries India ADM2 centroid,1070820.0,Top total DES-reported production across available reporting years,270
+Tamil Nadu,Mayiladuthurai,11.153363280745276,79.7103910870651,Mayiladuthurai,geoBoundaries India ADM2 centroid,1059163.0,Top total DES-reported production across available reporting years,271
+Uttar Pradesh,Banda,25.46353219592591,80.56186332079847,Banda,geoBoundaries India ADM2 centroid,1053704.0,Top total DES-reported production across available reporting years,272
+Assam,Tinsukia,27.585446476102298,95.61780060700598,Tinsukia,geoBoundaries India ADM2 centroid,1050211.0,Top total DES-reported production across available reporting years,273
+Karnataka,Hassan,12.997189028666025,76.1116563030904,Hassan,geoBoundaries India ADM2 centroid,1047763.0,Top total DES-reported production across available reporting years,274
+Haryana,Jhajjar,28.60769949467589,76.65087717227537,Jhajjar,geoBoundaries India ADM2 centroid,1046360.0,Top total DES-reported production across available reporting years,275
+Rajasthan,Hanumangarh,29.260935871765362,74.5427896869016,Hanumangarh,geoBoundaries India ADM2 centroid,1042098.0,Top total DES-reported production across available reporting years,276
+Uttar Pradesh,Mathura,27.597093806454673,77.62803070729251,Mathura,geoBoundaries India ADM2 centroid,1015763.0,Top total DES-reported production across available reporting years,277
+Uttar Pradesh,Sambhal,28.437653545210445,78.55385501108547,Sambhal,geoBoundaries India ADM2 centroid,1011311.0,Top total DES-reported production across available reporting years,278
+Manipur,Imphal west,24.772389765952596,93.86668687453626,Imphal West,geoBoundaries India ADM2 centroid,1008721.0,Top total DES-reported production across available reporting years,279
+Tamil Nadu,Ariyalur,11.162425636168006,79.24342855037709,Ariyalur,geoBoundaries India ADM2 centroid,981718.0,Top total DES-reported production across available reporting years,280
+Haryana,Palwal,28.06286009780454,77.3371867306989,Palwal,geoBoundaries India ADM2 centroid,976590.0,Top total DES-reported production across available reporting years,281
+Bihar,Jehanabad,25.159683537425703,85.0300913826794,Jehanabad,geoBoundaries India ADM2 centroid,951435.0,Top total DES-reported production across available reporting years,282
+Jharkhand,Lohardaga,23.468140347236577,84.65444669152237,Lohardaga,geoBoundaries India ADM2 centroid,949535.0,Top total DES-reported production across available reporting years,283
+Manipur,Imphal east,24.830120233619418,94.01236253858127,Imphal East,geoBoundaries India ADM2 centroid,946378.0,Top total DES-reported production across available reporting years,284
+Tamil Nadu,Dharmapuri,12.108957853859394,78.19059627131132,Dharmapuri,geoBoundaries India ADM2 centroid,943451.0,Top total DES-reported production across available reporting years,285
+Bihar,Arwal,25.175736125256726,84.70631282345154,Arwal,geoBoundaries India ADM2 centroid,926487.0,Top total DES-reported production across available reporting years,286
+Uttar Pradesh,Kanpur nagar,26.389194187590302,80.21237090603967,Kanpur Nagar,geoBoundaries India ADM2 centroid,925740.0,Top total DES-reported production across available reporting years,287
+Manipur,Thoubal,24.619134673739225,94.01293240919703,Thoubal,geoBoundaries India ADM2 centroid,913001.0,Top total DES-reported production across available reporting years,288
+Telangana,Mulugu,18.253653987672962,80.23410301842968,Mulugu,geoBoundaries India ADM2 centroid,900811.0,Top total DES-reported production across available reporting years,289
+Tamil Nadu,Salem,11.675907196509941,78.22265622210159,Salem,geoBoundaries India ADM2 centroid,895973.0,Top total DES-reported production across available reporting years,290
+Maharashtra,Satara,17.66608753477051,74.17344090327319,Satara,geoBoundaries India ADM2 centroid,886538.0,Top total DES-reported production across available reporting years,291
+Andhra Pradesh,Anantapur,14.48266563093275,77.57881459417244,Anantapur,geoBoundaries India ADM2 centroid,883851.0,Top total DES-reported production across available reporting years,292
+Meghalaya,West garo hills,25.629216085953395,90.19108373655106,West Garo Hills,geoBoundaries India ADM2 centroid,881664.0,Top total DES-reported production across available reporting years,293
+Jammu and Kashmir,Jammu,32.786056172474524,74.74714929817883,Jammu,geoBoundaries India ADM2 centroid,875843.0,Top total DES-reported production across available reporting years,294
+Telangana,Vikarabad,17.251221954025837,77.74190453504902,Vikarabad,geoBoundaries India ADM2 centroid,865996.0,Top total DES-reported production across available reporting years,295
+Punjab,Pathankot,32.29863336642977,75.62178036822898,Pathankot,geoBoundaries India ADM2 centroid,862000.0,Top total DES-reported production across available reporting years,296
+Tripura,Dhalai,23.844940416718405,91.92690492638273,Dhalai,geoBoundaries India ADM2 centroid,855233.0,Top total DES-reported production across available reporting years,297
+Telangana,Jogulamba,16.066611577424137,77.78219172137219,Jogulamba,geoBoundaries India ADM2 centroid,852771.0,Top total DES-reported production across available reporting years,298
+Manipur,Bishnupur,24.533374749828482,93.79529527324105,Bishnupur,geoBoundaries India ADM2 centroid,845250.0,Top total DES-reported production across available reporting years,299
+Uttar Pradesh,Sonbhadra,24.408314733301587,83.0530118571689,Sonbhadra,geoBoundaries India ADM2 centroid,840066.0,Top total DES-reported production across available reporting years,300
+Jharkhand,Jamtara,23.98894676868131,86.89299322589935,Jamtara,geoBoundaries India ADM2 centroid,808416.0,Top total DES-reported production across available reporting years,301
+Tripura,West tripura,23.890251187813767,91.40250944715794,West Tripura,geoBoundaries India ADM2 centroid,801757.0,Top total DES-reported production across available reporting years,302
+Odisha,Jharsuguda,21.806447271349697,83.95474888176139,Jharsuguda,geoBoundaries India ADM2 centroid,788960.0,Top total DES-reported production across available reporting years,303
+Bihar,Lakhisarai,25.148315777302056,86.12040909404682,Lakhisarai,geoBoundaries India ADM2 centroid,778526.0,Top total DES-reported production across available reporting years,304
+Tripura,North tripura,24.10392796923853,92.20793193881606,North Tripura,geoBoundaries India ADM2 centroid,771365.0,Top total DES-reported production across available reporting years,305
+Tamil Nadu,Virudhunagar,9.49156167029972,77.90962763907858,Virudhunagar,geoBoundaries India ADM2 centroid,766247.0,Top total DES-reported production across available reporting years,306
+Madhya Pradesh,Shivpuri,25.360884367699953,77.81102172482126,Shivpuri,geoBoundaries India ADM2 centroid,764068.0,Top total DES-reported production across available reporting years,307
+Madhya Pradesh,Datia,25.838347838032057,78.61506718427543,Datia,geoBoundaries India ADM2 centroid,761188.0,Top total DES-reported production across available reporting years,308
+Karnataka,Haveri,14.739062449423916,75.41861255405938,Haveri,geoBoundaries India ADM2 centroid,759027.0,Top total DES-reported production across available reporting years,309
+Madhya Pradesh,Betul,21.877662251842185,77.87447939039869,Betul,geoBoundaries India ADM2 centroid,756873.0,Top total DES-reported production across available reporting years,310
+Assam,Chirang,26.651914862304707,90.62689652207095,Chirang,geoBoundaries India ADM2 centroid,753541.0,Top total DES-reported production across available reporting years,311
+Jharkhand,Pakur,24.563758452953355,87.66343210768545,Pakur,geoBoundaries India ADM2 centroid,746539.0,Top total DES-reported production across available reporting years,312
+Kerala,Thrissur,10.47192079226541,76.31574749701512,Thrissur,geoBoundaries India ADM2 centroid,733042.0,Top total DES-reported production across available reporting years,313
+Tripura,Khowai,23.941254307895438,91.66365990001019,Khowai,geoBoundaries India ADM2 centroid,730750.0,Top total DES-reported production across available reporting years,314
+Jharkhand,Godda,24.866641152572996,87.31684460665626,Godda,geoBoundaries India ADM2 centroid,729872.0,Top total DES-reported production across available reporting years,315
+Jharkhand,Garhwa,24.098891754166953,83.70025895486623,Garhwa,geoBoundaries India ADM2 centroid,729587.0,Top total DES-reported production across available reporting years,316
+Tamil Nadu,Kallakurichi,11.792626355409963,79.00923084126343,Kallakurichi,geoBoundaries India ADM2 centroid,720067.0,Top total DES-reported production across available reporting years,317
+Bihar,Vaishali,25.777708702241434,85.36077119000157,Vaishali,geoBoundaries India ADM2 centroid,717140.0,Top total DES-reported production across available reporting years,318
+Rajasthan,Kota,25.096466571687397,76.12455635583663,Kota,geoBoundaries India ADM2 centroid,706543.0,Top total DES-reported production across available reporting years,319
+Odisha,Kandhamal,20.127506426711314,84.04779087552255,Kandhamal,geoBoundaries India ADM2 centroid,704912.0,Top total DES-reported production across available reporting years,320
+Gujarat,Panch mahals,22.72042243833791,73.62925514309258,Panch Mahals,geoBoundaries India ADM2 centroid,694886.0,Top total DES-reported production across available reporting years,321
+Odisha,Gajapati,19.17472993315712,84.1612203521734,Gajapati,geoBoundaries India ADM2 centroid,686950.0,Top total DES-reported production across available reporting years,322
+Bihar,Munger,25.204531407890016,86.51326022824583,Munger,geoBoundaries India ADM2 centroid,683022.0,Top total DES-reported production across available reporting years,323
+Jharkhand,Palamu,24.203056580649477,84.16924143146477,Palamu,geoBoundaries India ADM2 centroid,676342.0,Top total DES-reported production across available reporting years,324
+Bihar,Bhagalpur,25.26480679023543,87.08048369304572,Bhagalpur,geoBoundaries India ADM2 centroid,670235.0,Top total DES-reported production across available reporting years,325
+Jharkhand,Chatra,24.16869293572482,84.88716606329582,Chatra,geoBoundaries India ADM2 centroid,666408.0,Top total DES-reported production across available reporting years,326
+Karnataka,Kodagu,12.325010274981373,75.80546178239275,Kodagu,geoBoundaries India ADM2 centroid,655044.0,Top total DES-reported production across available reporting years,327
+Uttar Pradesh,Kannauj,27.01207410105404,79.6887862449679,Kannauj,geoBoundaries India ADM2 centroid,632760.0,Top total DES-reported production across available reporting years,328
+Uttar Pradesh,Firozabad,27.181338966362453,78.5405047112579,Firozabad,geoBoundaries India ADM2 centroid,618968.0,Top total DES-reported production across available reporting years,329
+Karnataka,Chikmagalur,13.460915022967113,75.7040009736634,Chikmagalur,geoBoundaries India ADM2 centroid,618794.0,Top total DES-reported production across available reporting years,330
+Bihar,Sheikhpura,25.115251378426503,85.85277047065662,Sheikhpura,geoBoundaries India ADM2 centroid,614869.0,Top total DES-reported production across available reporting years,331
+Jharkhand,Bokaro,23.694194578628565,85.9771351041598,Bokaro,geoBoundaries India ADM2 centroid,600046.0,Top total DES-reported production across available reporting years,332
+Goa,South goa,15.19525987117241,74.11823165615253,South Goa,geoBoundaries India ADM2 centroid,585442.0,Top total DES-reported production across available reporting years,333
+Gujarat,Vadodara,22.245412517310825,73.2327356194636,Vadodara,geoBoundaries India ADM2 centroid,584903.0,Top total DES-reported production across available reporting years,334
+Uttar Pradesh,Hapur,28.711573375666863,77.87617507592428,Hapur,geoBoundaries India ADM2 centroid,581103.0,Top total DES-reported production across available reporting years,335
+Himachal Pradesh,Kangra,32.10857608585249,76.31889911216362,Kangra,geoBoundaries India ADM2 centroid,578410.0,Top total DES-reported production across available reporting years,336
+Chhattisgarh,Gaurella-pendra-marwahi,22.80514567382482,82.00245267229745,Gaurella Pendra Marwahi,geoBoundaries India ADM2 centroid,567332.0,Top total DES-reported production across available reporting years,337
+Jharkhand,Ramgarh,23.628796039670725,85.5606851388983,Ramgarh,geoBoundaries India ADM2 centroid,565081.0,Top total DES-reported production across available reporting years,338
+Assam,Hojai,25.97751145918799,92.98190087160854,Hojai,geoBoundaries India ADM2 centroid,559693.0,Top total DES-reported production across available reporting years,339
+Madhya Pradesh,Bhind,26.420166419733626,78.72310610405586,Bhind,geoBoundaries India ADM2 centroid,558761.0,Top total DES-reported production across available reporting years,340
+Gujarat,Mahisagar,23.188343520070312,73.64716421385012,Mahisagar,geoBoundaries India ADM2 centroid,552264.0,Top total DES-reported production across available reporting years,341
+Telangana,Adilabad,19.51577636542679,78.57396645012727,Adilabad,geoBoundaries India ADM2 centroid,544300.0,Top total DES-reported production across available reporting years,342
+Tamil Nadu,Theni,9.891613520707624,77.44001611043211,Theni,geoBoundaries India ADM2 centroid,528290.0,Top total DES-reported production across available reporting years,343
+Kerala,Kottayam,9.638189631238621,76.6518523129707,Kottayam,geoBoundaries India ADM2 centroid,522281.0,Top total DES-reported production across available reporting years,344
+Tamil Nadu,Ranipet,12.957607799992672,79.44835668823058,Ranipet,geoBoundaries India ADM2 centroid,521787.0,Top total DES-reported production across available reporting years,345
+Jharkhand,Dhanbad,23.829652819698104,86.471585235236,Dhanbad,geoBoundaries India ADM2 centroid,519589.0,Top total DES-reported production across available reporting years,346
+Haryana,Bhiwani,28.717748034586773,75.96620978201295,Bhiwani,geoBoundaries India ADM2 centroid,507100.0,Top total DES-reported production across available reporting years,347
+Tamil Nadu,Kanniyakumari,8.307773872848339,77.3635654992946,Kanniyakumari,geoBoundaries India ADM2 centroid,495603.0,Top total DES-reported production across available reporting years,348
+Meghalaya,South west garo hills,25.445550134832,89.95012347962846,South West Garo Hills,geoBoundaries India ADM2 centroid,484601.0,Top total DES-reported production across available reporting years,349
+Goa,North goa,15.55067056362313,73.98205335153615,North Goa,geoBoundaries India ADM2 centroid,479741.0,Top total DES-reported production across available reporting years,350

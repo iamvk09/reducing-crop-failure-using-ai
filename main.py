@@ -1,17 +1,16 @@
 import pandas as pd
 
 from src.create_map import create_map
-from src.data_generator import generate_dataset
 from src.digital_twin import run_digital_twin
 from src.generate_predictions import generate_predictions
 from src.shap_analysis import explain
 from src.train_model import train
 
 
-def run_pipeline():
-    generate_dataset()
-    train()
-    generate_predictions()
+def run_pipeline(data_path="data/district_dataset.csv"):
+    """Train from an existing dataset; never regenerate or overwrite source data."""
+    train(data_path=data_path)
+    generate_predictions(data_path=data_path)
     explain()
     create_map()
     print("Pipeline completed successfully.")
@@ -58,7 +57,7 @@ def simulate_district():
 
 
 if __name__ == "__main__":
-    print("1. Run full pipeline")
+    print("1. Run existing dataset pipeline")
     print("2. Search district summary")
     print("3. Run district digital twin simulation")
     choice = input("Select an option: ").strip()
