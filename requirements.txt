@@ -1,11 +1,11 @@
+streamlit
 pandas
-numpy
-scikit-learn
+numpy==2.2.6
+scikit-learn==1.7.2
 xgboost
 imbalanced-learn
 shap
 geopandas
 folium
 matplotlib
-streamlit
-joblib
+joblib==1.6.0
