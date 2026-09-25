@@ -6,7 +6,14 @@ import pandas as pd
 import streamlit as st
 
 from src.digital_twin import DEFAULT_SCENARIOS, run_digital_twin, simulate_custom_scenario
+from src.live_prediction import (
+    get_crop_recommendation,
+    get_district_baseline,
+    get_prediction_explanation,
+    predict_new_case,
+)
 from src.translations import LANGUAGES, localize_feature, localize_map_html, localize_value, translate
+from src.weather_service import get_current_weather
 
 
 st.set_page_config(page_title="Agriculture AI Dashboard", layout="wide")
@@ -336,9 +343,477 @@ with hero_right:
     st.dataframe(top_recommendations, hide_index=True, width="stretch")
     st.caption(t("options_caption"))
 
-overview_tab, comparison_tab, twin_tab, map_tab = st.tabs(
-    [t("tab_field"), t("tab_compare"), t("tab_weather"), t("tab_map")]
+live_tab, overview_tab, comparison_tab, twin_tab, map_tab = st.tabs(
+    ["🔮 " + t("tab_live"), t("tab_field"), t("tab_compare"), t("tab_weather"), t("tab_map")]
 )
+
+with live_tab:
+    st.header(t("live_prediction_heading"))
+    st.caption(
+        "Real-time crop failure risk evaluation combining live Open-Meteo weather with the trained agricultural ML pipeline."
+    )
+
+    mode_c1, mode_c2 = st.columns([1.2, 2.8])
+    with mode_c1:
+        live_ui_mode = st.radio(
+            "Interface Mode",
+            [t("live_farmer_mode"), t("live_expert_mode")],
+            index=1 if show_expert_tools else 0,
+            horizontal=True,
+            help="Farmer mode provides clean guidance; Expert mode unlocks SHAP analysis, data provenance, and digital twin simulation.",
+        )
+    is_expert = live_ui_mode == t("live_expert_mode")
+
+    st.subheader(t("choose_field"))
+    all_states = sorted(selection_df["State"].dropna().unique().tolist())
+    default_state_idx = all_states.index(selected_state) if selected_state in all_states else 0
+
+    sel_c1, sel_c2, sel_c3 = st.columns(3)
+    with sel_c1:
+        live_state = st.selectbox(
+            t("state"),
+            all_states,
+            index=default_state_idx,
+            key="live_state_selector",
+        )
+
+    state_districts = sorted(
+        selection_df[selection_df["State"] == live_state]["District"].dropna().unique().tolist()
+    )
+    default_dist_idx = (
+        state_districts.index(district) if district in state_districts else 0
+    )
+    with sel_c2:
+        live_district = st.selectbox(
+            t("district"),
+            state_districts,
+            index=default_dist_idx,
+            key="live_district_selector",
+        )
+
+    district_baseline = get_district_baseline(live_district)
+    available_crops = district_baseline["available_crops"]
+    default_crop_idx = available_crops.index(crop) if crop in available_crops else 0
+
+    with sel_c3:
+        live_crop = st.selectbox(
+            t("crop"),
+            available_crops,
+            index=default_crop_idx,
+            format_func=lambda val: localize_value(language, val),
+            key="live_crop_selector",
+        )
+
+    baseline_info = get_district_baseline(live_district, live_crop)
+    district_coords = (baseline_info["latitude"], baseline_info["longitude"])
+
+    # Live Weather Integration
+    st.subheader(t("live_weather"))
+    with st.spinner("Fetching current live weather from Open-Meteo..."):
+        weather_data = get_current_weather(district_coords[0], district_coords[1])
+
+    w_col1, w_col2, w_col3, w_col4 = st.columns(4)
+    if weather_data["success"]:
+        w_col1.metric("Temperature", f"{weather_data['temperature']} °C")
+        w_col2.metric("Humidity", f"{weather_data['humidity']} %")
+        w_col3.metric("Precipitation", f"{weather_data['precipitation']} mm")
+        if weather_data.get("soil_moisture_percentage") is not None:
+            w_col4.metric(
+                "Soil Moisture (Root-zone)",
+                f"{weather_data['soil_moisture_percentage']} %",
+                help=f"Volumetric: {weather_data.get('soil_moisture_m3m3')} m³/m³",
+            )
+        else:
+            w_col4.metric(
+                "Precipitation (7-day sum)",
+                f"{weather_data.get('precipitation_sum_7d', 0.0)} mm",
+            )
+        st.caption(
+            f"Source: Open-Meteo · Coordinates: ({district_coords[0]}°N, {district_coords[1]}°E) · Updated: {weather_data['timestamp']}"
+        )
+    else:
+        st.warning(
+            f"⚠️ Live weather unavailable ({weather_data.get('error')}). Using historical district baseline weather."
+        )
+        w_col1.metric("Baseline Temp", f"{baseline_info['feature_baselines']['Temperature']} °C")
+        w_col2.metric("Baseline Humidity", f"{baseline_info['feature_baselines']['Humidity']} %")
+        w_col3.metric("Baseline Rainfall", f"{baseline_info['feature_baselines']['Rainfall']} mm")
+        w_col4.metric("Baseline Soil Moisture", f"{baseline_info['feature_baselines']['SoilMoisture']} %")
+        st.caption("Source: Historical district dataset baseline")
+
+    # Feature Assembly and Provenance Tracking
+    base_feats = baseline_info["feature_baselines"].copy()
+    feature_provenance = baseline_info["feature_sources"].copy()
+
+    if weather_data["success"]:
+        if weather_data["temperature"] is not None:
+            base_feats["Temperature"] = float(weather_data["temperature"])
+            feature_provenance["Temperature"] = "Live weather (Open-Meteo)"
+        if weather_data["humidity"] is not None:
+            base_feats["Humidity"] = float(weather_data["humidity"])
+            feature_provenance["Humidity"] = "Live weather (Open-Meteo)"
+        if weather_data.get("soil_moisture_percentage") is not None:
+            base_feats["SoilMoisture"] = float(weather_data["soil_moisture_percentage"])
+            feature_provenance["SoilMoisture"] = "Derived from live weather (Open-Meteo root-zone moisture)"
+
+    overridden_feats = base_feats.copy()
+    soil_options = [
+        "Sandy Loam", "Sandy", "Black", "Loam", "Alluvial",
+        "Red Loam", "Red Sandy Loam", "Laterite", "Clay Loam",
+        "Loamy Sand", "Medium Black",
+    ]
+    irrigation_options = ["Low", "Medium", "High"]
+
+    with st.expander("🛠️ " + t("advanced_inputs") + (" (Expert Controls)" if is_expert else "")):
+        st.caption(
+            "Model features that cannot be obtained from live weather are populated from verified district/crop historical baselines. "
+            "You may review or override any value below:"
+        )
+        adv_c1, adv_c2, adv_c3 = st.columns(3)
+        with adv_c1:
+            adv_rain = st.number_input(
+                "Seasonal Rainfall (mm)",
+                min_value=0.0,
+                max_value=350.0,
+                value=float(base_feats["Rainfall"]),
+                step=5.0,
+                help="Cumulative seasonal rainfall for this crop cycle",
+                key="adv_live_rain",
+            )
+            adv_sm = st.number_input(
+                "Soil Moisture (%)",
+                min_value=5.0,
+                max_value=100.0,
+                value=float(base_feats["SoilMoisture"]),
+                step=1.0,
+                key="adv_live_sm",
+            )
+            soil_idx = (
+                soil_options.index(base_feats["SoilType"])
+                if base_feats["SoilType"] in soil_options
+                else 0
+            )
+            adv_soil = st.selectbox(
+                "Soil Type",
+                soil_options,
+                index=soil_idx,
+                key="adv_live_soil",
+            )
+        with adv_c2:
+            adv_ndvi = st.number_input(
+                "Crop Greenness (NDVI Flowering)",
+                min_value=0.10,
+                max_value=0.99,
+                value=float(base_feats["NDVI_Flowering"]),
+                step=0.01,
+                key="adv_live_ndvi",
+            )
+            adv_water_stress = st.number_input(
+                "Water Shortage Index",
+                min_value=0.01,
+                max_value=0.99,
+                value=float(base_feats["WaterStress"]),
+                step=0.01,
+                key="adv_live_water_stress",
+            )
+            irr_idx = (
+                irrigation_options.index(base_feats["IrrigationLevel"])
+                if base_feats["IrrigationLevel"] in irrigation_options
+                else 1
+            )
+            adv_irrigation = st.selectbox(
+                "Irrigation Level",
+                irrigation_options,
+                index=irr_idx,
+                key="adv_live_irr",
+            )
+        with adv_c3:
+            adv_pest = st.number_input(
+                "Pest Risk Index",
+                min_value=0.01,
+                max_value=0.99,
+                value=float(base_feats["PestRisk"]),
+                step=0.01,
+                key="adv_live_pest",
+            )
+            adv_suitability = st.number_input(
+                "Crop Suitability Score",
+                min_value=0.05,
+                max_value=1.00,
+                value=float(base_feats["SuitabilityScore"]),
+                step=0.01,
+                key="adv_live_suitability",
+            )
+            adv_yield_idx = st.number_input(
+                "Expected Yield Index",
+                min_value=10.0,
+                max_value=100.0,
+                value=float(base_feats["YieldIndex"]),
+                step=1.0,
+                key="adv_live_yield",
+            )
+
+        if adv_rain != base_feats["Rainfall"]:
+            overridden_feats["Rainfall"] = adv_rain
+            feature_provenance["Rainfall"] = "User override (Advanced Inputs)"
+        if adv_sm != base_feats["SoilMoisture"]:
+            overridden_feats["SoilMoisture"] = adv_sm
+            feature_provenance["SoilMoisture"] = "User override (Advanced Inputs)"
+        if adv_soil != base_feats["SoilType"]:
+            overridden_feats["SoilType"] = adv_soil
+            feature_provenance["SoilType"] = "User override (Advanced Inputs)"
+        if adv_ndvi != base_feats["NDVI_Flowering"]:
+            overridden_feats["NDVI_Flowering"] = adv_ndvi
+            feature_provenance["NDVI_Flowering"] = "User override (Advanced Inputs)"
+        if adv_water_stress != base_feats["WaterStress"]:
+            overridden_feats["WaterStress"] = adv_water_stress
+            feature_provenance["WaterStress"] = "User override (Advanced Inputs)"
+        if adv_irrigation != base_feats["IrrigationLevel"]:
+            overridden_feats["IrrigationLevel"] = adv_irrigation
+            feature_provenance["IrrigationLevel"] = "User override (Advanced Inputs)"
+        if adv_pest != base_feats["PestRisk"]:
+            overridden_feats["PestRisk"] = adv_pest
+            feature_provenance["PestRisk"] = "User override (Advanced Inputs)"
+        if adv_suitability != base_feats["SuitabilityScore"]:
+            overridden_feats["SuitabilityScore"] = adv_suitability
+            feature_provenance["SuitabilityScore"] = "User override (Advanced Inputs)"
+        if adv_yield_idx != base_feats["YieldIndex"]:
+            overridden_feats["YieldIndex"] = adv_yield_idx
+            feature_provenance["YieldIndex"] = "User override (Advanced Inputs)"
+
+    st.write("")
+    predict_clicked = st.button(t("predict_button"), type="primary", use_container_width=True)
+
+    # Initialize or update prediction session state
+    if predict_clicked or "live_case_input" not in st.session_state:
+        st.session_state["live_case_input"] = overridden_feats
+        st.session_state["live_case_provenance"] = feature_provenance
+        st.session_state["live_case_district"] = live_district
+        st.session_state["live_case_crop"] = live_crop
+        st.session_state["live_case_state"] = live_state
+
+    # Execute predictions using the active session case
+    active_input = st.session_state["live_case_input"]
+    active_provenance = st.session_state["live_case_provenance"]
+    current_district = st.session_state["live_case_district"]
+    current_crop = st.session_state["live_case_crop"]
+    current_state = st.session_state["live_case_state"]
+
+    prediction_result = predict_new_case(active_input)
+    rec_data = get_crop_recommendation({**active_input, "District": current_district})
+    explanation_result = get_prediction_explanation(active_input)
+
+    st.divider()
+    res_left, res_right = st.columns([1.3, 1])
+
+    with res_left:
+        st.subheader(
+            f"{t('crop')}: {localize_value(language, current_crop)} · {t('district')}: {current_district}, {current_state}"
+        )
+
+        r_col1, r_col2 = st.columns([1.2, 1])
+        with r_col1:
+            st.metric(
+                t("estimated_risk"),
+                f"{prediction_result['risk_probability'] * 100:.1f}%",
+            )
+        with r_col2:
+            _styled_risk_badge(
+                prediction_result["risk_level"],
+                t(
+                    {"High": "high", "Medium": "medium", "Low": "low"}.get(
+                        prediction_result["risk_level"], "risk_level"
+                    )
+                ),
+            )
+
+        st.info(
+            f"ℹ️ **{t('disclaimer_title')}**: {t('disclaimer_text')}"
+        )
+
+        # Farmer guidance note
+        farmer_advice_list = _farmer_advice(
+            {
+                "RiskLevel": prediction_result["risk_level"],
+                "WaterStress": active_input["WaterStress"],
+                "SoilMoisture": active_input["SoilMoisture"],
+                "PestRisk": active_input["PestRisk"],
+                "RecommendedCrop": rec_data.get("recommended_crop", current_crop),
+                "Crop": current_crop,
+            },
+            language,
+        )
+        st.markdown(
+            f'<div class="farmer-note"><strong>{t("what_means")}</strong> {" ".join(farmer_advice_list)}</div>',
+            unsafe_allow_html=True,
+        )
+
+    with res_right:
+        st.subheader(t("recommended_crops_title"))
+        if rec_data.get("success") and rec_data.get("recommended_crop"):
+            st.success(
+                f"**{t('better_crop')}**: {localize_value(language, rec_data['recommended_crop'])}"
+            )
+            st.markdown(f"**{t('safer_options')}:**")
+            rec_table = pd.DataFrame(rec_data["top_options"])[["crop", "percentage"]].rename(
+                columns={"crop": t("crop"), "percentage": "Model Confidence"}
+            )
+            rec_table[t("crop")] = rec_table[t("crop")].map(lambda c: localize_value(language, c))
+            st.dataframe(rec_table, hide_index=True, width="stretch")
+        else:
+            st.info("Crop recommendation not available for this profile.")
+
+    # Expert Mode Tools
+    if is_expert:
+        st.divider()
+        st.header(f"🔬 {t('expert_tools')} — Live Case")
+
+        exp_c1, exp_c2 = st.columns([1.1, 1])
+        with exp_c1:
+            st.subheader("Model Diagnostic Details")
+            st.markdown(f"- **Primary Architecture**: `{prediction_result['best_model_name']}`")
+            st.markdown(f"- **Explainer Engine**: `{explanation_result['explainer_type']}`")
+
+            if (
+                prediction_result.get("region_risk") is not None
+                or prediction_result.get("crop_risk") is not None
+            ):
+                contrib_data = {
+                    "Model Component": [
+                        "Global Model",
+                        "Region-Specific Model",
+                        "Crop-Specific Model",
+                        "Consensus Risk",
+                    ],
+                    "Failure Risk": [
+                        f"{prediction_result['global_risk'] * 100:.1f}%",
+                        (
+                            f"{prediction_result['region_risk'] * 100:.1f}%"
+                            if prediction_result["region_risk"] is not None
+                            else "N/A"
+                        ),
+                        (
+                            f"{prediction_result['crop_risk'] * 100:.1f}%"
+                            if prediction_result["crop_risk"] is not None
+                            else "N/A"
+                        ),
+                        f"{prediction_result['consensus_risk'] * 100:.1f}%",
+                    ],
+                }
+                st.dataframe(pd.DataFrame(contrib_data), hide_index=True, width="stretch")
+
+            st.subheader(f"📊 {t('why_risk')}")
+            st.write(explanation_result.get("summary", ""))
+            shap_items = explanation_result.get("top_features", [])
+            if shap_items:
+                shap_df = pd.DataFrame(shap_items)[
+                    ["display_name", "impact", "direction"]
+                ].rename(
+                    columns={
+                        "display_name": "Feature",
+                        "impact": "SHAP Impact Score",
+                        "direction": "Effect on Risk",
+                    }
+                )
+                st.dataframe(shap_df, hide_index=True, width="stretch")
+
+        with exp_c2:
+            st.subheader(f"📋 {t('data_provenance')}")
+            st.caption(
+                "Every feature's exact source is audited below to guarantee data integrity."
+            )
+            provenance_rows = [
+                {
+                    "Feature": f,
+                    "Value": str(active_input[f]),
+                    "Data Provenance": active_provenance.get(f, "System"),
+                }
+                for f in bundle["failure_features"]
+            ]
+            st.dataframe(pd.DataFrame(provenance_rows), hide_index=True, width="stretch")
+
+        # Integrated Digital Twin connected to the Live Case
+        st.divider()
+        st.subheader(f"🌱 {t('digital_twin_live_title')}")
+        st.caption(
+            "Simulate environmental stress scenarios on this exact live case using the trained Digital Twin."
+        )
+
+        dt_left, dt_right = st.columns([1, 1.15])
+        with dt_left:
+            st.markdown("**Preset Stress Scenarios**")
+            live_twin_presets = run_digital_twin(pd.Series(active_input), best_model)
+            live_twin_presets["RiskScore"] = live_twin_presets["RiskScore"].map(
+                lambda v: f"{v * 100:.1f}%"
+            )
+            st.dataframe(
+                live_twin_presets[
+                    ["Scenario", "RiskScore", "Temperature", "Rainfall", "SoilMoisture"]
+                ],
+                hide_index=True,
+                width="stretch",
+            )
+
+        with dt_right:
+            st.markdown("**Interactive Scenario Simulator**")
+            sim_c1, sim_c2 = st.columns(2)
+            with sim_c1:
+                dt_rain = st.slider(
+                    "Rainfall adjustment (mm)",
+                    -80.0,
+                    80.0,
+                    0.0,
+                    5.0,
+                    key="dt_live_rain",
+                )
+                dt_temp = st.slider(
+                    "Temperature adjustment (°C)",
+                    -6.0,
+                    6.0,
+                    0.0,
+                    0.5,
+                    key="dt_live_temp",
+                )
+            with sim_c2:
+                dt_hum = st.slider(
+                    "Humidity adjustment (%)",
+                    -30.0,
+                    30.0,
+                    0.0,
+                    2.0,
+                    key="dt_live_hum",
+                )
+                dt_sm = st.slider(
+                    "Soil moisture adjustment (%)",
+                    -30.0,
+                    30.0,
+                    0.0,
+                    2.0,
+                    key="dt_live_sm",
+                )
+
+            dt_custom_res = simulate_custom_scenario(
+                pd.Series(active_input),
+                best_model,
+                "Live Simulation",
+                {
+                    "Rainfall": dt_rain,
+                    "Temperature": dt_temp,
+                    "Humidity": dt_hum,
+                    "SoilMoisture": dt_sm,
+                },
+            )
+            base_risk_val = prediction_result["global_risk"]
+            sim_risk_val = dt_custom_res["RiskScore"]
+
+            dt_res_cols = st.columns(2)
+            dt_res_cols[0].metric(t("current_risk"), f"{base_risk_val * 100:.1f}%")
+            dt_res_cols[1].metric(
+                t("risk_after"),
+                f"{sim_risk_val * 100:.1f}%",
+                _risk_delta_text(sim_risk_val, base_risk_val),
+            )
+
 
 with overview_tab:
     upper_left, upper_right = st.columns([1.2, 1])

@@ -9,3 +9,4 @@ geopandas
 folium
 matplotlib
 joblib==1.6.0
+requests

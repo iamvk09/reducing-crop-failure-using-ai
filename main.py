@@ -56,10 +56,66 @@ def simulate_district():
     print(results.to_string(index=False))
 
 
+def predict_live():
+    from src.live_prediction import (
+        get_crop_recommendation,
+        get_district_baseline,
+        predict_new_case,
+    )
+    from src.weather_service import get_current_weather
+
+    district = input("Enter District Name: ").strip()
+    baseline = get_district_baseline(district)
+    print(f"\nLocation: {baseline['district']}, {baseline['state']} ({baseline['region']})")
+    print(f"Available Crops: {', '.join(baseline['available_crops'])}")
+    crop = (
+        input(f"Enter Crop [{baseline['available_crops'][0]}]: ").strip()
+        or baseline["available_crops"][0]
+    )
+
+    baseline = get_district_baseline(district, crop)
+    lat, lon = baseline["latitude"], baseline["longitude"]
+    print(f"\nFetching live weather from Open-Meteo for ({lat}°N, {lon}°E)...")
+    weather = get_current_weather(lat, lon)
+
+    if weather["success"]:
+        print(
+            f"Live Weather ({weather['timestamp']}): Temp: {weather['temperature']} °C, "
+            f"Humidity: {weather['humidity']} %, Precip: {weather['precipitation']} mm"
+        )
+        if weather.get("soil_moisture_percentage") is not None:
+            print(f"Root-zone Soil Moisture: {weather['soil_moisture_percentage']} %")
+    else:
+        print(f"Weather API notice: {weather.get('error')}. Using historical district baseline.")
+
+    input_data = baseline["feature_baselines"].copy()
+    if weather["success"] and weather["temperature"] is not None:
+        input_data["Temperature"] = weather["temperature"]
+    if weather["success"] and weather["humidity"] is not None:
+        input_data["Humidity"] = weather["humidity"]
+    if weather["success"] and weather.get("soil_moisture_percentage") is not None:
+        input_data["SoilMoisture"] = weather["soil_moisture_percentage"]
+
+    result = predict_new_case(input_data)
+    rec = get_crop_recommendation({**input_data, "District": district})
+
+    print("\n--- PREDICTION RESULT ---")
+    print(f"District: {baseline['district']}, {baseline['state']}")
+    print(f"Crop: {crop}")
+    print(f"Estimated Crop Failure Risk: {result['risk_probability'] * 100:.1f}%")
+    print(f"Risk Level: {result['risk_level']}")
+    print(f"Model Architecture: {result['best_model_name']}")
+    if rec.get("success"):
+        print(f"Recommended Crop: {rec['recommended_crop']}")
+        print(f"Top Crop Options: {rec['summary']}")
+    print("\nDisclaimer: This is a machine-learning estimate based on available data and is not a guarantee of crop failure.")
+
+
 if __name__ == "__main__":
     print("1. Run existing dataset pipeline")
     print("2. Search district summary")
     print("3. Run district digital twin simulation")
+    print("4. Predict crop failure risk with live weather")
     choice = input("Select an option: ").strip()
 
     if choice == "1":
@@ -68,5 +124,7 @@ if __name__ == "__main__":
         search_district()
     elif choice == "3":
         simulate_district()
+    elif choice == "4":
+        predict_live()
     else:
         print("Invalid option.")
