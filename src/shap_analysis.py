@@ -41,9 +41,20 @@ def explain(
     Path(image_path).parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        explainer = shap.TreeExplainer(estimator)
+        if hasattr(estimator, "feature_importances_"):
+            explainer = shap.TreeExplainer(estimator)
+        elif hasattr(estimator, "coef_"):
+            explainer = shap.LinearExplainer(estimator, transformed)
+        else:
+            explainer = shap.Explainer(estimator, transformed)
+
         shap_values = explainer.shap_values(transformed)
-        positive_class_values = shap_values[1] if isinstance(shap_values, list) else shap_values
+        if isinstance(shap_values, list):
+            positive_class_values = shap_values[1]
+        elif getattr(shap_values, "ndim", 0) == 3:
+            positive_class_values = shap_values[:, :, 1]
+        else:
+            positive_class_values = shap_values
 
         plt.figure()
         shap.summary_plot(

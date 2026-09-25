@@ -1,58 +1,80 @@
 Feature,Importance
-num__SuitabilityScore,0.11701016972503053
-num__YieldIndex,0.10033638568598305
-num__NDVI_Flowering,0.0952293195704155
-num__WaterStress,0.08837058382052336
-num__PestRisk,0.06966725948408418
-num__Temperature,0.06945741641398209
-num__SoilMoisture,0.0685042812327036
-num__Rainfall,0.06837550705831895
-num__Humidity,0.06762019204570743
-num__Year,0.038219320409536385
-cat__Crop_Mustard,0.007861143133915983
-cat__SoilType_Black,0.0075628199456355015
-cat__IrrigationLevel_Low,0.007031176401536882
-cat__SoilType_Sandy,0.006840991265955455
-cat__Crop_Soybean,0.0065074114470404605
-cat__IrrigationLevel_High,0.006463745247795453
-cat__IrrigationLevel_Medium,0.0063392548334062025
-cat__Season_Rabi,0.0057808037200076014
-cat__State_Rajasthan,0.005669394516874466
-cat__Crop_Wheat,0.00551774549093533
-cat__Crop_Chickpea,0.005516767298619215
-cat__SoilType_Medium Black,0.005485689830385296
-cat__Crop_Millet,0.005388574184134306
-cat__Crop_Groundnut,0.005372362852094482
-cat__Region_Central Plateau,0.005202610863197606
-cat__Season_Kharif,0.005201738671937619
-cat__SoilType_Alluvial,0.0050785929991792565
-cat__Season_Zaid,0.004954771371838716
-cat__State_Telangana,0.004937020608659611
-cat__SoilType_Sandy Loam,0.004925645846949664
-cat__Crop_Maize,0.004858373618616909
-cat__Region_Deccan Plateau,0.004714966296342902
-cat__State_Odisha,0.004602982001715912
-cat__Crop_Rice,0.0045306596825267125
-cat__State_Tamil Nadu,0.004497614061633588
-cat__SoilType_Clay Loam,0.004484703884215149
-cat__Region_Indo Gangetic Plains,0.004392927818523474
-cat__State_Madhya Pradesh,0.004236816774884346
-cat__Region_Southern Plateau,0.004171288796773452
-cat__State_Uttar Pradesh,0.004125345773410575
-cat__SoilType_Red Loam,0.00405497197129964
-cat__SoilType_Red Sandy Loam,0.004001854398856971
-cat__State_Karnataka,0.003984475436523879
-cat__Region_Western Plateau,0.00393263220834341
-cat__Region_Northwest Dryland,0.003894834573579356
-cat__Region_Coastal Delta,0.003856015791643276
-cat__State_Maharashtra,0.003652620522188807
-cat__Crop_Cotton,0.003631900258001912
-cat__State_West Bengal,0.002866419146389381
-cat__SoilType_Loam,0.0028448429889116225
-cat__State_Bihar,0.0027841092806725172
-cat__Region_Semi Arid West,0.0027530662232961817
-cat__State_Gujarat,0.0027364085721528274
-cat__State_Punjab,0.0027011552829836775
-cat__SoilType_Loamy Sand,0.0026296653469097026
-cat__Region_Northwest Irrigated,0.0024088268549294052
-cat__Region_Humid East,0.002221826458290261
+num__SuitabilityScore,0.517780521124355
+num__Rainfall,0.10085738795891241
+cat__SoilType_Alluvial,0.09265700603210805
+num__NDVI_Flowering,0.07942769384881515
+num__YieldIndex,0.07804134037727321
+cat__Region_Southern Plateau,0.07595321897229028
+cat__SoilType_Laterite,0.07414197230044603
+cat__Season_Kharif,0.058840790132760994
+cat__Region_Indo Gangetic Plains,0.0552530239765242
+num__Humidity,0.05380398614020438
+num__SoilMoisture,0.05370581735632318
+cat__SoilType_Red Loam,0.0522845871511985
+num__WaterStress,0.04954496613534128
+cat__State_Karnataka,0.04587533967926155
+cat__Region_Himalayan Foothills,0.042767253273799995
+cat__Crop_Chickpea,0.0396496611131597
+cat__Season_Rabi,0.03915516410256505
+cat__Crop_Rice,0.038153617015233045
+num__Temperature,0.033615842692724204
+cat__SoilType_Sandy,0.031207384027225452
+cat__State_West Bengal,0.030805960506569384
+cat__Region_Humid East,0.02981009833104478
+cat__IrrigationLevel_Medium,0.028823578087400138
+cat__Region_Central Plateau,0.028767016250073944
+cat__Season_Zaid,0.02729704989437107
+cat__Crop_Maize,0.025771921091958576
+cat__State_Uttar Pradesh,0.024867455784436863
+cat__Crop_Wheat,0.02461379232725519
+cat__State_Assam,0.024311563154611728
+cat__State_Jammu and Kashmir,0.023350394188340215
+cat__Region_Coastal Delta,0.023309050508452375
+cat__State_Bihar,0.022475719416332772
+cat__State_Ladakh,0.02232445202584598
+cat__State_Madhya Pradesh,0.021354301011190586
+cat__Region_Northwest Dryland,0.020743368992166823
+num__Year,0.0205140372883301
+cat__Region_Semi Arid West,0.019548035991526803
+cat__State_Maharashtra,0.01772013961428946
+cat__IrrigationLevel_High,0.01742308734399617
+cat__State_Goa,0.012759392554263978
+cat__Crop_Cotton,0.012323961269692513
+cat__SoilType_Red Sandy Loam,0.012021965404764565
+cat__State_Gujarat,0.011910847858461963
+cat__State_Kerala,0.011385236849705133
+cat__SoilType_Clay Loam,0.009987456215883605
+cat__State_Haryana,0.009976035857678006
+cat__Crop_Millet,0.009080746060078927
+cat__State_Arunachal Pradesh,0.008987152067324037
+cat__IrrigationLevel_Low,0.008413708886302136
+cat__State_Nagaland,0.00823497874554797
+cat__State_Sikkim,0.008077642003483008
+cat__SoilType_Medium Black,0.007993048695252912
+cat__State_Andhra Pradesh,0.007041991430010984
+cat__SoilType_Loamy Sand,0.006732832261078939
+cat__State_Tripura,0.0061885857326710305
+cat__Crop_Groundnut,0.0058350135716707385
+cat__SoilType_Black,0.005756025359119905
+cat__Region_Western Plateau,0.005567567614658567
+cat__SoilType_Loam,0.005396221342526331
+cat__State_Telangana,0.005002596972347087
+cat__Region_Deccan Plateau,0.005002596972347087
+cat__State_Rajasthan,0.0038840026147152814
+cat__State_Jharkhand,0.0038009410412902125
+cat__Crop_Mustard,0.003619806800119994
+cat__Crop_Soybean,0.00344803233290986
+cat__Region_Northwest Irrigated,0.00304279191685639
+cat__State_Himachal Pradesh,0.002975202531685679
+cat__State_Puducherry,0.0029562049433953432
+cat__State_Manipur,0.0025045025475733443
+num__PestRisk,0.0024131605167492074
+cat__State_Meghalaya,0.0019464102639235898
+cat__State_Chhattisgarh,0.0016086698118946492
+cat__State_Odisha,0.0015499278254375978
+cat__SoilType_Sandy Loam,0.0013007470959150633
+cat__State_Mizoram,0.0010493234276615793
+cat__State_Tamil Nadu,0.0009066922122581366
+cat__State_Uttarakhand,0.0006636263650001046
+cat__State_Delhi,0.00040427548120006103
+cat__State_Punjab,0.00014516597857185882
