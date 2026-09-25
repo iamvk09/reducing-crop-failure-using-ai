@@ -85,7 +85,7 @@ def get_current_weather(latitude: float, longitude: float, timeout: int = 10) ->
             "soil_moisture_3_to_9cm,soil_moisture_9_to_27cm"
         ),
         "daily": "precipitation_sum",
-        "timezone": "auto",
+        "timezone": "Asia/Kolkata",
     }
 
     url = f"{OPEN_METEO_FORECAST_URL}?{urlencode(params)}"
@@ -145,7 +145,9 @@ def get_current_weather(latitude: float, longitude: float, timeout: int = 10) ->
             "soil_moisture_percentage": rel_moisture,
             "weather_code": weather_code,
             "timestamp": display_time,
-            "source": "Open-Meteo",
+            "source": "Open-Meteo (Meteorological Model Estimate)",
+            "is_estimate": True,
+            "estimate_note": "Numerical weather model estimate; not a physical in-situ farm sensor reading.",
             "latitude": round(float(latitude), 4),
             "longitude": round(float(longitude), 4),
             "precipitation_sum_7d": precip_7d,

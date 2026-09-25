@@ -5,12 +5,13 @@ Memory-optimised design for 512 MB Render instances:
 - Region and crop specialized models are loaded on-demand and cached in-process.
 - SHAP is imported lazily (only when explanation is requested) to save ~100 MB at startup.
 - Preserves consistent risk bands: Low (<0.45), Medium (0.45-0.70), High (>=0.70).
-- Provides full data provenance tracking.
+- Provides full data provenance tracking and strict input validation.
 """
 
 from datetime import datetime
+import math
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
@@ -37,6 +38,102 @@ _SPECIALIZED_CACHE: Dict[str, Any] = {}      # {prefix_name: model} – populate
 
 
 # ---------------------------------------------------------------------------
+# Strict Schema & Validation Metadata
+# ---------------------------------------------------------------------------
+
+VALID_CATEGORIES = {
+    "State": [
+        "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Delhi",
+        "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand",
+        "Karnataka", "Kerala", "Ladakh", "Madhya Pradesh", "Maharashtra", "Manipur",
+        "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan",
+        "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+    ],
+    "Region": [
+        "Central Plateau", "Coastal Delta", "Deccan Plateau", "Himalayan Foothills",
+        "Humid East", "Indo Gangetic Plains", "Northwest Dryland", "Northwest Irrigated",
+        "Semi Arid West", "Southern Plateau", "Western Plateau"
+    ],
+    "Season": ["Kharif", "Rabi", "Zaid"],
+    "Crop": ["Chickpea", "Cotton", "Groundnut", "Maize", "Millet", "Mustard", "Rice", "Soybean", "Wheat"],
+    "SoilType": [
+        "Alluvial", "Black", "Clay Loam", "Laterite", "Loam", "Loamy Sand",
+        "Medium Black", "Red Loam", "Red Sandy Loam", "Sandy", "Sandy Loam"
+    ],
+    "IrrigationLevel": ["High", "Low", "Medium"],
+}
+
+NUMERIC_BOUNDS = {
+    "Year": (1990, 2100),
+    "Rainfall": (0.0, 1500.0),
+    "Temperature": (-15.0, 60.0),
+    "Humidity": (0.0, 100.0),
+    "SoilMoisture": (0.0, 100.0),
+    "NDVI_Flowering": (0.0, 1.0),
+    "WaterStress": (0.0, 1.0),
+    "PestRisk": (0.0, 1.0),
+    "SuitabilityScore": (0.0, 1.0),
+    "YieldIndex": (0.0, 250.0),
+}
+
+
+def validate_prediction_input(
+    input_data: Dict[str, Any],
+    bundle: Optional[dict] = None,
+) -> Tuple[bool, Optional[str]]:
+    """Validate input feature dictionary against model schema and agronomic bounds.
+
+    Returns
+    -------
+    Tuple[bool, Optional[str]]
+        (True, None) if completely valid, or (False, error_description) if invalid.
+    """
+    if not isinstance(input_data, dict):
+        return False, "Input data must be a dictionary."
+
+    required_features = (
+        bundle.get("failure_features") if bundle else list(NUMERIC_BOUNDS.keys()) + list(VALID_CATEGORIES.keys())
+    )
+
+    # 1. Check for missing or null entries
+    missing = [f for f in required_features if f not in input_data or input_data[f] is None]
+    if missing:
+        return False, f"Missing required input features: {missing}"
+
+    # 2. Categorical validation
+    for cat_col, valid_vals in VALID_CATEGORIES.items():
+        if cat_col in required_features:
+            val = input_data.get(cat_col)
+            if not isinstance(val, str) or not val.strip():
+                return False, f"Categorical feature '{cat_col}' must be a non-empty string."
+            if val not in valid_vals:
+                return (
+                    False,
+                    f"Invalid value '{val}' for categorical feature '{cat_col}'. Expected one of: {valid_vals}",
+                )
+
+    # 3. Numeric validation
+    for num_col, (min_v, max_v) in NUMERIC_BOUNDS.items():
+        if num_col in required_features:
+            val = input_data.get(num_col)
+            try:
+                f_val = float(val)
+            except (ValueError, TypeError):
+                return False, f"Numeric feature '{num_col}' must be a valid real number, got: {val}"
+
+            if math.isnan(f_val) or math.isinf(f_val):
+                return False, f"Numeric feature '{num_col}' cannot be NaN or Infinite."
+
+            if not (min_v <= f_val <= max_v):
+                return (
+                    False,
+                    f"Feature '{num_col}' value {f_val} is outside plausible agronomic range [{min_v}, {max_v}].",
+                )
+
+    return True, None
+
+
+# ---------------------------------------------------------------------------
 # Lazy specialized model loading
 # ---------------------------------------------------------------------------
 
@@ -44,7 +141,7 @@ class _LazyModelDict:
     """Dict-like container that loads specialized models on first access only.
 
     Keeps all 20 specialized models off-memory until a user's selected region/crop
-    triggers a lookup.  Each loaded model is cached in ``_SPECIALIZED_CACHE``
+    triggers a lookup. Each loaded model is cached in ``_SPECIALIZED_CACHE``
     so subsequent accesses within the same Streamlit session are free.
     """
 
@@ -67,7 +164,7 @@ class _LazyModelDict:
             path = SPECIALIZED_DIR / f"{self._prefix}_{safe}.pkl"
             if not path.exists():
                 raise FileNotFoundError(
-                    f"Specialized model not found: {path}.  "
+                    f"Specialized model not found: {path}. "
                     "Re-run the training pipeline to regenerate specialized models."
                 )
             _SPECIALIZED_CACHE[cache_key] = joblib.load(str(path))
@@ -93,7 +190,7 @@ def load_model_bundle(bundle_path: str = DEFAULT_BUNDLE_PATH) -> dict:
     """Load the trained model bundle with in-process caching.
 
     The slim runtime bundle (``agri_ai_runtime_bundle.pkl``) is preferred when
-    available.  Region and crop specialized models are injected as
+    available. Region and crop specialized models are injected as
     ``_LazyModelDict`` instances so they are loaded on-demand only.
     """
     global _CACHED_BUNDLE
@@ -108,7 +205,6 @@ def load_model_bundle(bundle_path: str = DEFAULT_BUNDLE_PATH) -> dict:
     log_memory("Before bundle load")
     path = Path(bundle_path)
     if not path.exists():
-        # Try full bundle as a last resort
         path = Path(_FULL_BUNDLE_PATH)
         if not path.exists():
             raise FileNotFoundError(f"Model bundle not found at: {path.resolve()}")
@@ -121,7 +217,7 @@ def load_model_bundle(bundle_path: str = DEFAULT_BUNDLE_PATH) -> dict:
     if missing_keys:
         raise KeyError(f"Bundle missing required keys: {missing_keys}")
 
-    # Inject lazy specialized model dictionaries if the specialized/ directory exists
+    # Inject lazy specialized model dictionaries if specialized/ directory exists
     if "region_models" not in bundle or not bundle["region_models"]:
         region_keys = _discover_specialized_keys("region")
         bundle["region_models"] = _LazyModelDict("region", region_keys)
@@ -155,8 +251,6 @@ def _load_baseline_data(dataset_path: str = DEFAULT_DATASET_PATH) -> pd.DataFram
         "Rainfall", "Temperature", "Humidity", "SoilMoisture",
         "NDVI_Flowering", "WaterStress", "PestRisk", "SuitabilityScore", "YieldIndex",
     ]
-    # Read only available columns so the function works even if the dataset
-    # is an older version missing some columns.
     available_cols = pd.read_csv(str(path), nrows=0).columns.tolist()
     cols_to_read = [c for c in needed_cols if c in available_cols]
     df = pd.read_csv(str(path), usecols=cols_to_read)
@@ -171,9 +265,27 @@ def _load_baseline_data(dataset_path: str = DEFAULT_DATASET_PATH) -> pd.DataFram
 def get_district_baseline(
     district: str,
     crop: Optional[str] = None,
+    season: Optional[str] = None,
     dataset_path: str = DEFAULT_DATASET_PATH,
 ) -> Dict[str, Any]:
-    """Return empirical baseline feature values and metadata for a district/crop pair."""
+    """Return empirical baseline feature values and metadata for a district/crop/season profile.
+
+    Parameters
+    ----------
+    district : str
+        Target district name.
+    crop : str, optional
+        Target crop name. If omitted or not found, defaults to first crop for district.
+    season : str, optional
+        Target season ('Kharif', 'Rabi', 'Zaid'). If omitted, defaults to prevailing season.
+    dataset_path : str, optional
+        Path to district baseline CSV.
+
+    Returns
+    -------
+    dict
+        Empirical baselines, metadata, available crops/seasons, and provenance dictionary.
+    """
     df = _load_baseline_data(dataset_path)
 
     district_mask = df["District"].str.lower() == district.strip().lower()
@@ -194,8 +306,12 @@ def get_district_baseline(
         region = first_row["Region"]
         latitude = float(first_row["Latitude"])
         longitude = float(first_row["Longitude"])
-        soil_type = first_row["SoilType"]
-        irrigation_level = first_row["IrrigationLevel"]
+        soil_type = district_df["SoilType"].mode()[0] if "SoilType" in district_df else first_row["SoilType"]
+        irrigation_level = (
+            district_df["IrrigationLevel"].mode()[0]
+            if "IrrigationLevel" in district_df
+            else first_row["IrrigationLevel"]
+        )
 
     available_crops = sorted(district_df["Crop"].dropna().unique().tolist())
     target_crop = crop if (crop and crop in available_crops) else (available_crops[0] if available_crops else "Rice")
@@ -204,11 +320,29 @@ def get_district_baseline(
     if crop_df.empty:
         crop_df = district_df
 
-    season = crop_df["Season"].mode()[0] if "Season" in crop_df else "Kharif"
+    available_seasons = sorted(crop_df["Season"].dropna().unique().tolist())
+    if not available_seasons:
+        available_seasons = ["Kharif", "Rabi", "Zaid"]
 
-    num_cols = ["Rainfall", "Temperature", "Humidity", "SoilMoisture",
-                "NDVI_Flowering", "WaterStress", "PestRisk", "SuitabilityScore", "YieldIndex"]
-    medians = {col: round(float(crop_df[col].median()), 3) for col in num_cols if col in crop_df}
+    if season and season in available_seasons:
+        target_season = season
+        season_df = crop_df[crop_df["Season"] == target_season]
+        if season_df.empty:
+            season_df = crop_df
+    else:
+        target_season = crop_df["Season"].mode()[0] if "Season" in crop_df else "Kharif"
+        season_df = crop_df
+
+    if "SoilType" in season_df and not season_df["SoilType"].empty:
+        soil_type = season_df["SoilType"].mode()[0]
+    if "IrrigationLevel" in season_df and not season_df["IrrigationLevel"].empty:
+        irrigation_level = season_df["IrrigationLevel"].mode()[0]
+
+    num_cols = [
+        "Rainfall", "Temperature", "Humidity", "SoilMoisture",
+        "NDVI_Flowering", "WaterStress", "PestRisk", "SuitabilityScore", "YieldIndex"
+    ]
+    medians = {col: round(float(season_df[col].median()), 3) for col in num_cols if col in season_df}
 
     feature_baselines = {
         "Year": datetime.now().year,
@@ -223,29 +357,29 @@ def get_district_baseline(
         "YieldIndex": medians.get("YieldIndex", 60.0),
         "State": state,
         "Region": region,
-        "Season": season,
+        "Season": target_season,
         "Crop": target_crop,
         "SoilType": soil_type,
         "IrrigationLevel": irrigation_level,
     }
 
     feature_sources = {
-        "State": "Historical dataset (District mapping)",
-        "Region": "Historical dataset (District mapping)",
-        "Season": "Historical dataset (Crop-season profile)",
+        "State": "User selection / Historical district mapping",
+        "Region": "Historical district mapping",
+        "Season": "User selection / District-crop baseline",
         "Crop": "User selection",
-        "SoilType": "Historical dataset (District baseline)",
-        "IrrigationLevel": "Historical dataset (District baseline)",
-        "Year": "Current year",
-        "Temperature": "Live weather (Open-Meteo)",
-        "Humidity": "Live weather (Open-Meteo)",
-        "Rainfall": "Historical dataset (District seasonal baseline)",
-        "SoilMoisture": "Derived from live weather / District baseline",
-        "NDVI_Flowering": "Baseline/default (Historical district-crop median)",
-        "WaterStress": "Baseline/default (Historical district-crop median)",
-        "PestRisk": "Baseline/default (Historical district-crop median)",
-        "SuitabilityScore": "Baseline/default (Historical district-crop median)",
-        "YieldIndex": "Baseline/default (Historical district-crop median)",
+        "SoilType": "User selection (District empirical baseline)",
+        "IrrigationLevel": "User selection (District empirical baseline)",
+        "Year": "Current calendar year",
+        "Temperature": "Live weather estimate (Open-Meteo)",
+        "Humidity": "Live weather estimate (Open-Meteo)",
+        "Rainfall": "Historical seasonal baseline (District-Crop-Season median)",
+        "SoilMoisture": "Live weather estimate (Open-Meteo root-zone moisture)",
+        "NDVI_Flowering": "Historical baseline (District-Crop-Season median)",
+        "WaterStress": "Historical baseline (District-Crop-Season median)",
+        "PestRisk": "Historical baseline (District-Crop-Season median)",
+        "SuitabilityScore": "Historical baseline (District-Crop median)",
+        "YieldIndex": "Historical baseline (District-Crop median)",
     }
 
     return {
@@ -257,6 +391,8 @@ def get_district_baseline(
         "soil_type": soil_type,
         "irrigation_level": irrigation_level,
         "available_crops": available_crops,
+        "available_seasons": available_seasons,
+        "selected_season": target_season,
         "feature_baselines": feature_baselines,
         "feature_sources": feature_sources,
     }
@@ -270,15 +406,23 @@ def predict_new_case(
     input_data: Dict[str, Any],
     bundle_path: str = DEFAULT_BUNDLE_PATH,
 ) -> Dict[str, Any]:
-    """Predict crop failure risk using the saved sklearn pipeline directly."""
+    """Predict crop failure risk using the saved sklearn pipeline directly.
+
+    Validates that:
+    - All required features are present and non-null.
+    - Categorical variables match known model encodings.
+    - Numeric variables lie in realistic physiological bounds.
+    - No silent zero-substitution occurs.
+    """
     bundle = load_model_bundle(bundle_path)
     best_model_name = bundle["best_failure_model_name"]
     best_pipeline = bundle["failure_models"][best_model_name]
     failure_features = bundle["failure_features"]
 
-    missing_features = [f for f in failure_features if f not in input_data or input_data[f] is None]
-    if missing_features:
-        raise ValueError(f"Missing required model features: {missing_features}")
+    # Strict validation before invoking model
+    is_valid, err_msg = validate_prediction_input(input_data, bundle)
+    if not is_valid:
+        raise ValueError(f"Input validation error: {err_msg}")
 
     input_row = {feature: input_data[feature] for feature in failure_features}
     df = pd.DataFrame([input_row])[failure_features]
@@ -290,7 +434,9 @@ def predict_new_case(
         if cat_col in df.columns:
             df[cat_col] = df[cat_col].astype(str)
 
-    global_risk = float(best_pipeline.predict_proba(df)[0][1])
+    # Direct predict_proba on the scikit-learn Pipeline
+    probabilities = best_pipeline.predict_proba(df)[0]
+    global_risk = float(probabilities[1])
 
     # Specialized models: loaded lazily, only when the model file exists on disk
     region_risk = None
@@ -401,11 +547,10 @@ def get_prediction_explanation(
     """Generate SHAP explanation for a single prediction.
 
     SHAP is imported lazily inside this function to avoid the ~100 MB overhead
-    at application startup.  The import is free on subsequent calls because
+    at application startup. The import is free on subsequent calls because
     Python caches module objects in sys.modules.
     """
-    # Lazy SHAP import — avoids the cost at startup
-    import shap  # noqa: PLC0415  (intentional deferred import)
+    import shap  # noqa: PLC0415 (intentional deferred import)
 
     try:
         from src.memory_diagnostics import log_memory

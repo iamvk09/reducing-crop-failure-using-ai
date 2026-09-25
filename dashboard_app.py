@@ -467,8 +467,47 @@ with live_tab:
             key="live_crop_selector",
         )
 
-    baseline_info = get_district_baseline(live_district, live_crop)
+    # Farmer Mode additional inputs: Season, Soil Type, Irrigation Level
+    available_seasons = district_baseline.get("available_seasons", ["Kharif", "Rabi", "Zaid"])
+    default_season_idx = available_seasons.index(season) if season in available_seasons else 0
+
+    sel_c4, sel_c5, sel_c6 = st.columns(3)
+    with sel_c4:
+        live_season = st.selectbox(
+            t("season"),
+            available_seasons,
+            index=default_season_idx,
+            format_func=lambda val: localize_value(language, val),
+            key="live_season_selector",
+        )
+
+    baseline_info = get_district_baseline(live_district, live_crop, live_season)
     district_coords = (baseline_info["latitude"], baseline_info["longitude"])
+
+    soil_options = [
+        "Alluvial", "Black", "Clay Loam", "Laterite", "Loam", "Loamy Sand",
+        "Medium Black", "Red Loam", "Red Sandy Loam", "Sandy", "Sandy Loam",
+    ]
+    default_soil = baseline_info.get("soil_type", "Loam")
+    default_soil_idx = soil_options.index(default_soil) if default_soil in soil_options else 0
+    with sel_c5:
+        live_soil = st.selectbox(
+            "Soil Type",
+            soil_options,
+            index=default_soil_idx,
+            key="live_soil_selector",
+        )
+
+    irrigation_options = ["Low", "Medium", "High"]
+    default_irr = baseline_info.get("irrigation_level", "Medium")
+    default_irr_idx = irrigation_options.index(default_irr) if default_irr in irrigation_options else 1
+    with sel_c6:
+        live_irrigation = st.selectbox(
+            "Irrigation Level",
+            irrigation_options,
+            index=default_irr_idx,
+            key="live_irrigation_selector",
+        )
 
     # Live Weather Integration
     st.subheader(t("live_weather"))
@@ -479,7 +518,7 @@ with live_tab:
     if weather_data["success"]:
         w_col1.metric("Temperature", f"{weather_data['temperature']} °C")
         w_col2.metric("Humidity", f"{weather_data['humidity']} %")
-        w_col3.metric("Precipitation", f"{weather_data['precipitation']} mm")
+        w_col3.metric("Precipitation (Current)", f"{weather_data['precipitation']} mm")
         if weather_data.get("soil_moisture_percentage") is not None:
             w_col4.metric(
                 "Soil Moisture (Root-zone)",
@@ -492,11 +531,12 @@ with live_tab:
                 f"{weather_data.get('precipitation_sum_7d', 0.0)} mm",
             )
         st.caption(
-            f"Source: Open-Meteo · Coordinates: ({district_coords[0]}°N, {district_coords[1]}°E) · Updated: {weather_data['timestamp']}"
+            f"Source: {weather_data['source']} · Coordinates: ({district_coords[0]}°N, {district_coords[1]}°E) · Updated: {weather_data['timestamp']} · Timezone: Asia/Kolkata"
         )
+        st.caption("ℹ️ *Values are meteorological/model estimates; not physical in-situ farm sensor readings.*")
     else:
         st.warning(
-            f"⚠️ Live weather unavailable ({weather_data.get('error')}). Using historical district baseline weather."
+            f"⚠️ Live weather unavailable ({weather_data.get('error')}). Using verified historical district baseline weather."
         )
         w_col1.metric("Baseline Temp", f"{baseline_info['feature_baselines']['Temperature']} °C")
         w_col2.metric("Baseline Humidity", f"{baseline_info['feature_baselines']['Humidity']} %")
@@ -508,141 +548,120 @@ with live_tab:
     base_feats = baseline_info["feature_baselines"].copy()
     feature_provenance = baseline_info["feature_sources"].copy()
 
+    # Apply Farmer Mode selections
+    base_feats["State"] = live_state
+    feature_provenance["State"] = "User selection (Farmer Mode)"
+    base_feats["Season"] = live_season
+    feature_provenance["Season"] = "User selection (Farmer Mode)"
+    base_feats["Crop"] = live_crop
+    feature_provenance["Crop"] = "User selection (Farmer Mode)"
+    base_feats["SoilType"] = live_soil
+    feature_provenance["SoilType"] = "User selection (Farmer Mode)"
+    base_feats["IrrigationLevel"] = live_irrigation
+    feature_provenance["IrrigationLevel"] = "User selection (Farmer Mode)"
+
     if weather_data["success"]:
         if weather_data["temperature"] is not None:
             base_feats["Temperature"] = float(weather_data["temperature"])
-            feature_provenance["Temperature"] = "Live weather (Open-Meteo)"
+            feature_provenance["Temperature"] = "Live weather estimate (Open-Meteo)"
         if weather_data["humidity"] is not None:
             base_feats["Humidity"] = float(weather_data["humidity"])
-            feature_provenance["Humidity"] = "Live weather (Open-Meteo)"
+            feature_provenance["Humidity"] = "Live weather estimate (Open-Meteo)"
         if weather_data.get("soil_moisture_percentage") is not None:
             base_feats["SoilMoisture"] = float(weather_data["soil_moisture_percentage"])
-            feature_provenance["SoilMoisture"] = "Derived from live weather (Open-Meteo root-zone moisture)"
+            feature_provenance["SoilMoisture"] = "Live weather estimate (Open-Meteo root-zone moisture)"
 
     overridden_feats = base_feats.copy()
-    soil_options = [
-        "Sandy Loam", "Sandy", "Black", "Loam", "Alluvial",
-        "Red Loam", "Red Sandy Loam", "Laterite", "Clay Loam",
-        "Loamy Sand", "Medium Black",
-    ]
-    irrigation_options = ["Low", "Medium", "High"]
 
-    with st.expander("🛠️ " + t("advanced_inputs") + (" (Expert Controls)" if is_expert else "")):
-        st.caption(
-            "Model features that cannot be obtained from live weather are populated from verified district/crop historical baselines. "
-            "You may review or override any value below:"
-        )
-        adv_c1, adv_c2, adv_c3 = st.columns(3)
-        with adv_c1:
-            adv_rain = st.number_input(
-                "Seasonal Rainfall (mm)",
-                min_value=0.0,
-                max_value=350.0,
-                value=float(base_feats["Rainfall"]),
-                step=5.0,
-                help="Cumulative seasonal rainfall for this crop cycle",
-                key="adv_live_rain",
+    if is_expert:
+        with st.expander("🛠️ " + t("advanced_inputs") + " (Expert Agronomic Overrides)", expanded=True):
+            st.caption(
+                "Model features that cannot be obtained directly from live weather are populated from verified district/crop/season historical baselines. "
+                "You may review or override any value below:"
             )
-            adv_sm = st.number_input(
-                "Soil Moisture (%)",
-                min_value=5.0,
-                max_value=100.0,
-                value=float(base_feats["SoilMoisture"]),
-                step=1.0,
-                key="adv_live_sm",
-            )
-            soil_idx = (
-                soil_options.index(base_feats["SoilType"])
-                if base_feats["SoilType"] in soil_options
-                else 0
-            )
-            adv_soil = st.selectbox(
-                "Soil Type",
-                soil_options,
-                index=soil_idx,
-                key="adv_live_soil",
-            )
-        with adv_c2:
-            adv_ndvi = st.number_input(
-                "Crop Greenness (NDVI Flowering)",
-                min_value=0.10,
-                max_value=0.99,
-                value=float(base_feats["NDVI_Flowering"]),
-                step=0.01,
-                key="adv_live_ndvi",
-            )
-            adv_water_stress = st.number_input(
-                "Water Shortage Index",
-                min_value=0.01,
-                max_value=0.99,
-                value=float(base_feats["WaterStress"]),
-                step=0.01,
-                key="adv_live_water_stress",
-            )
-            irr_idx = (
-                irrigation_options.index(base_feats["IrrigationLevel"])
-                if base_feats["IrrigationLevel"] in irrigation_options
-                else 1
-            )
-            adv_irrigation = st.selectbox(
-                "Irrigation Level",
-                irrigation_options,
-                index=irr_idx,
-                key="adv_live_irr",
-            )
-        with adv_c3:
-            adv_pest = st.number_input(
-                "Pest Risk Index",
-                min_value=0.01,
-                max_value=0.99,
-                value=float(base_feats["PestRisk"]),
-                step=0.01,
-                key="adv_live_pest",
-            )
-            adv_suitability = st.number_input(
-                "Crop Suitability Score",
-                min_value=0.05,
-                max_value=1.00,
-                value=float(base_feats["SuitabilityScore"]),
-                step=0.01,
-                key="adv_live_suitability",
-            )
-            adv_yield_idx = st.number_input(
-                "Expected Yield Index",
-                min_value=10.0,
-                max_value=100.0,
-                value=float(base_feats["YieldIndex"]),
-                step=1.0,
-                key="adv_live_yield",
-            )
+            adv_c1, adv_c2, adv_c3 = st.columns(3)
+            with adv_c1:
+                adv_rain = st.number_input(
+                    "Seasonal Rainfall (mm)",
+                    min_value=0.0,
+                    max_value=1500.0,
+                    value=float(base_feats["Rainfall"]),
+                    step=5.0,
+                    help="Cumulative seasonal rainfall for this crop cycle",
+                    key="adv_live_rain",
+                )
+                adv_sm = st.number_input(
+                    "Soil Moisture (%)",
+                    min_value=5.0,
+                    max_value=100.0,
+                    value=float(base_feats["SoilMoisture"]),
+                    step=1.0,
+                    key="adv_live_sm",
+                )
+            with adv_c2:
+                adv_ndvi = st.number_input(
+                    "Crop Greenness (NDVI Flowering)",
+                    min_value=0.05,
+                    max_value=0.99,
+                    value=float(base_feats["NDVI_Flowering"]),
+                    step=0.01,
+                    key="adv_live_ndvi",
+                )
+                adv_water_stress = st.number_input(
+                    "Water Shortage Index",
+                    min_value=0.01,
+                    max_value=0.99,
+                    value=float(base_feats["WaterStress"]),
+                    step=0.01,
+                    key="adv_live_water_stress",
+                )
+            with adv_c3:
+                adv_pest = st.number_input(
+                    "Pest Risk Index",
+                    min_value=0.01,
+                    max_value=0.99,
+                    value=float(base_feats["PestRisk"]),
+                    step=0.01,
+                    key="adv_live_pest",
+                )
+                adv_suitability = st.number_input(
+                    "Crop Suitability Score",
+                    min_value=0.05,
+                    max_value=1.00,
+                    value=float(base_feats["SuitabilityScore"]),
+                    step=0.01,
+                    key="adv_live_suitability",
+                )
+                adv_yield_idx = st.number_input(
+                    "Expected Yield Index",
+                    min_value=10.0,
+                    max_value=150.0,
+                    value=float(base_feats["YieldIndex"]),
+                    step=1.0,
+                    key="adv_live_yield",
+                )
 
-        if adv_rain != base_feats["Rainfall"]:
-            overridden_feats["Rainfall"] = adv_rain
-            feature_provenance["Rainfall"] = "User override (Advanced Inputs)"
-        if adv_sm != base_feats["SoilMoisture"]:
-            overridden_feats["SoilMoisture"] = adv_sm
-            feature_provenance["SoilMoisture"] = "User override (Advanced Inputs)"
-        if adv_soil != base_feats["SoilType"]:
-            overridden_feats["SoilType"] = adv_soil
-            feature_provenance["SoilType"] = "User override (Advanced Inputs)"
-        if adv_ndvi != base_feats["NDVI_Flowering"]:
-            overridden_feats["NDVI_Flowering"] = adv_ndvi
-            feature_provenance["NDVI_Flowering"] = "User override (Advanced Inputs)"
-        if adv_water_stress != base_feats["WaterStress"]:
-            overridden_feats["WaterStress"] = adv_water_stress
-            feature_provenance["WaterStress"] = "User override (Advanced Inputs)"
-        if adv_irrigation != base_feats["IrrigationLevel"]:
-            overridden_feats["IrrigationLevel"] = adv_irrigation
-            feature_provenance["IrrigationLevel"] = "User override (Advanced Inputs)"
-        if adv_pest != base_feats["PestRisk"]:
-            overridden_feats["PestRisk"] = adv_pest
-            feature_provenance["PestRisk"] = "User override (Advanced Inputs)"
-        if adv_suitability != base_feats["SuitabilityScore"]:
-            overridden_feats["SuitabilityScore"] = adv_suitability
-            feature_provenance["SuitabilityScore"] = "User override (Advanced Inputs)"
-        if adv_yield_idx != base_feats["YieldIndex"]:
-            overridden_feats["YieldIndex"] = adv_yield_idx
-            feature_provenance["YieldIndex"] = "User override (Advanced Inputs)"
+            if adv_rain != base_feats["Rainfall"]:
+                overridden_feats["Rainfall"] = adv_rain
+                feature_provenance["Rainfall"] = "User override (Advanced Inputs)"
+            if adv_sm != base_feats["SoilMoisture"]:
+                overridden_feats["SoilMoisture"] = adv_sm
+                feature_provenance["SoilMoisture"] = "User override (Advanced Inputs)"
+            if adv_ndvi != base_feats["NDVI_Flowering"]:
+                overridden_feats["NDVI_Flowering"] = adv_ndvi
+                feature_provenance["NDVI_Flowering"] = "User override (Advanced Inputs)"
+            if adv_water_stress != base_feats["WaterStress"]:
+                overridden_feats["WaterStress"] = adv_water_stress
+                feature_provenance["WaterStress"] = "User override (Advanced Inputs)"
+            if adv_pest != base_feats["PestRisk"]:
+                overridden_feats["PestRisk"] = adv_pest
+                feature_provenance["PestRisk"] = "User override (Advanced Inputs)"
+            if adv_suitability != base_feats["SuitabilityScore"]:
+                overridden_feats["SuitabilityScore"] = adv_suitability
+                feature_provenance["SuitabilityScore"] = "User override (Advanced Inputs)"
+            if adv_yield_idx != base_feats["YieldIndex"]:
+                overridden_feats["YieldIndex"] = adv_yield_idx
+                feature_provenance["YieldIndex"] = "User override (Advanced Inputs)"
 
     st.write("")
     predict_clicked = st.button(t("predict_button"), type="primary", use_container_width=True)
@@ -654,6 +673,7 @@ with live_tab:
         st.session_state["live_case_district"] = live_district
         st.session_state["live_case_crop"] = live_crop
         st.session_state["live_case_state"] = live_state
+        st.session_state["live_case_season"] = live_season
 
     # Execute predictions using the active session case
     active_input = st.session_state["live_case_input"]
@@ -661,11 +681,23 @@ with live_tab:
     current_district = st.session_state["live_case_district"]
     current_crop = st.session_state["live_case_crop"]
     current_state = st.session_state["live_case_state"]
+    current_season = st.session_state.get("live_case_season", live_season)
 
-    prediction_result = predict_new_case(active_input)
-    rec_data = get_crop_recommendation({**active_input, "District": current_district})
-    explanation_result = get_prediction_explanation(active_input)
+    try:
+        prediction_result = predict_new_case(active_input)
+        rec_data = get_crop_recommendation({**active_input, "District": current_district})
+        if is_expert:
+            explanation_result = get_prediction_explanation(active_input)
+        else:
+            explanation_result = None
+    except ValueError as val_err:
+        st.error(f"❌ Input Validation Error: {val_err}")
+        prediction_result = None
+        rec_data = None
+        explanation_result = None
 
+    if prediction_result is None:
+        st.stop()
     st.divider()
     res_left, res_right = st.columns([1.3, 1])
 
