@@ -60,22 +60,85 @@ DIGITAL_TWIN_CONTROLS = [
 ]
 
 
-@st.cache_data
+# ---------------------------------------------------------------------------
+# Memory diagnostics - emitted to stdout; visible in Render log tail
+# ---------------------------------------------------------------------------
+from src.memory_diagnostics import log_memory
+
+log_memory("Dashboard startup - before any data loading")
+
+
+# ---------------------------------------------------------------------------
+# Cached data loading - split so Streamlit caches each CSV independently.
+# ---------------------------------------------------------------------------
+
+@st.cache_data(show_spinner=False)
+def _load_predictions():
+    df = pd.read_csv("data/district_predictions.csv")
+    log_memory("After district_predictions.csv load")
+    return df
+
+
+@st.cache_data(show_spinner=False)
+def _load_summary():
+    return pd.read_csv("data/district_summary.csv")
+
+
+@st.cache_data(show_spinner=False)
+def _load_feature_importance():
+    return pd.read_csv("models/feature_importance.csv")
+
+
+@st.cache_data(show_spinner=False)
+def _load_model_performance():
+    return pd.read_csv("models/model_performance.csv")
+
+
+@st.cache_data(show_spinner=False)
+def _load_observed():
+    path = "data/district_observed_dataset.csv"
+    if os.path.exists(path):
+        return pd.read_csv(path)
+    return pd.DataFrame()
+
+
 def load_data():
-    predictions = pd.read_csv("data/district_predictions.csv")
-    summary = pd.read_csv("data/district_summary.csv")
-    feature_importance = pd.read_csv("models/feature_importance.csv")
-    performance = pd.read_csv("models/model_performance.csv")
-    observed_path = "data/district_observed_dataset.csv"
-    observed = pd.read_csv(observed_path) if os.path.exists(observed_path) else pd.DataFrame()
-    return predictions, summary, feature_importance, performance, observed
+    return (
+        _load_predictions(),
+        _load_summary(),
+        _load_feature_importance(),
+        _load_model_performance(),
+        _load_observed(),
+    )
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def load_bundle():
+    """Load the slim runtime bundle once per server process.
+
+    Uses agri_ai_runtime_bundle.pkl (best failure model + recommendation model only).
+    Falls back to full bundle if slim bundle not present.
+    Saves approx 180 MB RAM vs loading the full 4-model bundle.
+    """
     import joblib
 
-    return joblib.load("models/agri_ai_bundle.pkl")
+    slim_path = "models/agri_ai_runtime_bundle.pkl"
+    full_path = "models/agri_ai_bundle.pkl"
+    path = slim_path if os.path.exists(slim_path) else full_path
+    log_memory("Before load_bundle (%s)" % os.path.basename(path))
+    bundle = joblib.load(path)
+    log_memory("After load_bundle (%s)" % os.path.basename(path))
+    return bundle
+
+
+@st.cache_data(show_spinner=False)
+def _load_map_html() -> str:
+    """Read the pre-generated risk map HTML once and cache it."""
+    map_path = "maps/india_risk_map.html"
+    if os.path.exists(map_path):
+        with open(map_path, "r", encoding="utf-8") as fh:
+            return fh.read()
+    return ""
 
 
 def _format_percent(value):
@@ -991,8 +1054,8 @@ with map_tab:
     with map_left:
         st.subheader(t("map_title"))
         if os.path.exists("maps/india_risk_map.html"):
-            with open("maps/india_risk_map.html", "r", encoding="utf-8") as map_file:
-                st.components.v1.html(localize_map_html(map_file.read(), language), height=520)
+            _map_raw = _load_map_html()
+            st.components.v1.html(localize_map_html(_map_raw, language), height=520)
         else:
             st.info("Run the pipeline first to generate the map.")
 

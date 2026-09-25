@@ -2,6 +2,16 @@ venv/
 .venv/
 __pycache__/
 *.pyc
+*.pyo
 .git/
 .github/
 .streamlit/
+# Scratch/test artifacts not needed in Docker image
+scratch/
+tests/
+*.ipynb
+# Large files not needed at runtime
+data/raw/
+# models/agri_ai_bundle.pkl is large (123 MB) but needed for fallback;
+# agri_ai_runtime_bundle.pkl is the preferred slim bundle loaded at runtime.
+# Both are included since runtime bundle may not always exist.

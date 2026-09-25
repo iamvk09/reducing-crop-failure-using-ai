@@ -14,3 +14,5 @@ env/
 
 # Large, reproducible model artifact (over GitHub's 100 MB limit)
 models/agri_ai_bundle.pkl
+
+scratch/

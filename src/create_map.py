@@ -16,7 +16,7 @@ def _marker_color(risk_level):
 
 def create_map(summary_path=SUMMARY_PATH, output_path=MAP_PATH):
     df = pd.read_csv(summary_path)
-    india_map = folium.Map(location=[22.8, 79.8], zoom_start=5, tiles="CartoDB positron")
+    india_map = folium.Map(location=[22.8, 79.8], zoom_start=5, tiles="OpenStreetMap")
 
     for _, row in df.iterrows():
         popup = folium.Popup(
