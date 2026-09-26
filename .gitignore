@@ -1,18 +1,32 @@
 # Python bytecode and caches
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
 
 # Local Python environments
 venv/
 .venv/
 env/
+ENV/
+
+# Environment and Secrets (NEVER COMMIT)
+.env
+.env.*
+!.env.example
 
 # Editor and operating-system files
 .DS_Store
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Large, reproducible model artifact (over GitHub's 100 MB limit)
 models/agri_ai_bundle.pkl
 
+# Temporary & scratch files
 scratch/
+.pytest_cache/
+.coverage
+htmlcov/
