@@ -31,7 +31,8 @@ export default function PredictionHistoryView({
         setSelectedPrediction(records[0]);
       }
     } catch (err: any) {
-      setError(err.message || "Failed to load prediction history.");
+      const errMsg = err?.message || "Failed to load prediction history.";
+      setError(errMsg);
     } finally {
       setIsLoading(false);
     }

@@ -116,10 +116,21 @@ flowchart TD
 
 ## 📐 System Design Details
 
-### A. Presentation Layer
-- **Farmer App (`apps/farmer`)**: Tailored for mobile-first accessibility. Focuses on farm polygon boundaries, active crop stages, weather alerts, risk badges, and plain-language advisory in 8 Indian languages.
-- **Expert Workbench (`apps/expert`)**: Built for agronomists and researchers. Provides parametric Digital Twin sliders for scenario stress-testing, global/regional model comparisons, raw SHAP waterfall attributions, and ground-truth verification queues.
-- **Shared Code (`apps/shared`)**: Houses common types, Leaflet cadastral boundary mapping (`BoundaryMapper.tsx`), localization dictionaries, and HTTP API client abstractions with standard error unwrapping (`client.ts`).
+### A. Presentation Layer & Unified Single-Login Architecture
+- **Unified Single-Login Experience (`ONE LOGIN`)**: All authenticated users log in through a single authentication flow and land on the main farmer dashboard and field operations by default. No separate login or registration is required to access advanced features.
+- **Farmer Dashboard (`apps/farmer`)**: Tailored for field accessibility and smallholder operations. Features:
+  - **Top-Left Profile Access**: "My Profile & Account Settings" is pinned at the top-left of the sidebar for immediate account and notification management across any view.
+  - **Sidebar Field Selectors**: Real-time district, season, year, and crop selection updating the live risk assessment and comparative table.
+  - **Open Expert Workbench**: A dedicated, prominent sidebar button allows any authenticated user to seamlessly open the **Expert Workbench** without switching accounts or re-authenticating.
+- **Integrated Expert Workbench**:
+  - Embedded directly within the dashboard under the `expert` view with a 1-click **← Return to Farmer Operations** button.
+  - Includes:
+    - **Diagnostic Overview**: Production ensemble architecture weights (Global 40%, Regional 35%, Crop-specific 25%), baseline model performance metrics (ROC-AUC, F1, Brier score), and global feature importance attributions.
+    - **Takagi-Sugeno Neuro-Fuzzy AI Benchmark**: 6 canonical domain rules, Gaussian bell antecedents, and live parameter evaluation.
+    - **SHAP Explainability**: Deep TreeExplainer feature attributions for any simulated or farm observation.
+    - **Scenario Twin Simulator**: Parametric sliders for rainfall, temperature, humidity, and soil moisture stress tests.
+    - **Cross-Farm EWS Incident Management & Ground-Truth Evaluation**.
+- **Shared Code (`apps/shared`)**: Houses common types, Leaflet cadastral boundary mapping (`BoundaryMapper.tsx`), localization dictionaries (8 Indian languages), and HTTP API client abstractions with standard error unwrapping (`client.ts`).
 
 ### B. API Layer
 - Built on **FastAPI** (`backend/app/main.py`) using modular routers under prefix `/api/v1`.
@@ -128,22 +139,63 @@ flowchart TD
 - Standard health check probe available at `/health` and `/api/v1/health` for container orchestration.
 
 ### C. Authentication & Authorization
-- **Supabase Auth & JWTs**: Clients authenticate with Supabase, receiving a signed JWT containing server-managed `app_metadata` and user ID (`sub`).
-- **Role-Based Access Control (RBAC)**: Enforces three distinct roles (`farmer`, `expert`, `admin`). Farmers are strictly constrained to their own farms; experts and admins have cross-farm analytical privileges.
-- **User Metadata Security**: In adherence to Supabase Advisor guidelines, client-editable `user_metadata` is **never** used for role authorization. Roles are strictly evaluated via server-managed `app_metadata` or database security definer functions.
+- **Unified Auth & Session Handling**: Users authenticate once via Supabase Auth, receiving a signed JWT containing server-managed `app_metadata` and user ID (`sub`).
+- **One-Login Access Model**: All authenticated users can navigate between farmer operations and the expert workbench UI. Endpoints requiring administrative write actions or staff privileges enforce server-side RBAC dependencies (`get_expert_user`, `get_admin_user`).
+- **User Metadata Security**: In adherence to Supabase Advisor guidelines, client-editable `user_metadata` is **never** used for role authorization. Roles are strictly evaluated via server-managed `app_metadata` or database security definer functions (`public.current_user_role()`).
 - **Google OAuth Status**: The login UI provides a Google sign-in button, but Google OAuth is **not yet configured** in Google Cloud Console. In local development and testing, an authorized development role selector (`Farmer`, `Expert`, `Admin`) is provided for seamless testing without external dependencies.
 
-### D. Machine Learning Inference & Pipeline
-- **Stage-Aware Feature Assembly**: `FeatureAssembler` merges farm location, crop growth stage (Vegetative, Flowering, Maturity), live weather readings, and satellite NDVI into a verified 16-feature vector.
+### D. Machine Learning Inference & Feature Assembly Pipeline
 - **Dual Inference Engine**:
-  - Primary Scikit-Learn Pipeline (`models/agri_ai_runtime_bundle.pkl`): Performs imputation, scaling, one-hot encoding, and generates calibrated risk probabilities mapped to risk bands (**Low**, **Medium**, **High**).
-  - Neuro-Fuzzy Inference System (`models/neuro_fuzzy_model.json`): Provides transparent, rule-based membership evaluation for environmental stress.
-- **Explainability**: SHAP values are extracted per prediction to show top risk drivers and mitigating factors without altering model mathematics.
-- **Fallback Integrity**: If live weather or satellite data is unavailable or stale, historical district medians from `district_dataset.csv` are safely used and clearly tagged as `is_baseline=True` with `provenance_source` tracking.
+  - **Primary Model Bundle (`models/agri_ai_runtime_bundle.pkl`)**: Calibrated classification ensemble combining Random Forest (`RandomForestClassifier`) and LightGBM / Gradient Boosting estimators. Maps continuous consensus risk probabilities to 3 distinct operational risk bands:
+    - **Low Risk**: $[0.00, 0.35)$
+    - **Medium Risk**: $[0.35, 0.65)$
+    - **High Risk**: $[0.65, 1.00]$
+  - **Neuro-Fuzzy Inference System (`models/neuro_fuzzy_model.json`)**: Takagi-Sugeno fuzzy logic architecture using Gaussian bell membership antecedents across 8 environmental features and 6 canonical agronomic rules for transparent validation.
+- **Stage-Aware Feature Engineering (`backend/app/services/feature_service.py`)**:
+  - The trained ML bundle accepts an exact 16-feature vector (6 categorical, 10 numerical):
+    - **Categorical (6)**: `State`, `Region`, `Season`, `Crop`, `SoilType`, `IrrigationLevel`.
+    - **Numerical (10)**: `Year`, `Rainfall`, `Temperature`, `Humidity`, `SoilMoisture`, `NDVI_Flowering`, `WaterStress`, `PestRisk`, `SuitabilityScore`, `YieldIndex`.
+  - **Genuinely Integrated Live Telemetry vs. Baselines**:
+    - `Temperature`: Real-time dry-bulb 2m temperature from Open-Meteo. Stale if older than 24 hours.
+    - `Humidity`: Real-time 2m relative humidity (%) from Open-Meteo. Stale if older than 24 hours.
+    - `SoilMoisture`: 4-layer root-zone soil moisture relative saturation (%) derived from Open-Meteo ECMWF Land model (0–27 cm: 0–1 cm, 1–3 cm, 3–9 cm, 9–27 cm).
+    - `Rainfall`: Accumulated seasonal precipitation computed from daily observations if continuous history ($\ge 14$ days) is recorded for active crop cycle, or projected using baseline daily rate; falls back to historical median if unobserved.
+    - `NDVI_Flowering`: **Strict Phenology Guard**: Instantaneous Sentinel-2 NDVI is **only** substituted into `NDVI_Flowering` if the crop is in its active flowering stage (evaluated by phenological stage keywords or Days After Sowing within crop-specific flowering window: e.g., Rice 55–90 DAS, Wheat 60–90 DAS, Cotton 70–115 DAS). Otherwise, calibrated district historical baselines are retained with clear `provenance` metadata.
+    - `WaterStress`, `PestRisk`, `SuitabilityScore`, `YieldIndex`: Dynamic derived indices calibrated against live weather and soil type.
+- **Explainability**: SHAP attributions (`TreeExplainer` and `LinearExplainer`) output top risk contributors and mitigating protective factors per prediction.
+- **Tenant Isolation & Persistence**: Every farm assessment is saved in `public.predictions` with user ID, farm ID, complete feature provenance, and data quality flags.
 
-### E. Weather & Satellite Pipeline
-- **Weather Service**: Uses Open-Meteo's free, keyless forecast API. Results are cached in memory (TTL 3600s) keyed by rounded coordinates to prevent rate exhaustion.
-- **Satellite / NDVI Service**: Interfaces with Sentinel-2 L2A via Google Earth Engine (`ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")`). Computes median NDVI, standard deviation, and cloud percentage across farm polygon geometries. If Google Earth Engine credentials are unconfigured or optical imagery is cloud-obscured, safe fallback baseline values are returned.
+### E. Live Weather & Meteorological Telemetry Pipeline
+- **Provider & Integration**: Built on Open-Meteo's free, keyless REST API (`https://api.open-meteo.com/v1/forecast`).
+- **Supported Endpoints**:
+  - `GET /api/v1/weather/current?latitude={lat}&longitude={lon}`: Real-time 2m temperature, relative humidity, precipitation, wind speed (10m), weather code, and multi-layer soil moisture.
+  - `GET /api/v1/weather/forecast?latitude={lat}&longitude={lon}&days={7|14}`: Daily projections including min/max temperature, precipitation sum, and weather code.
+  - `GET /api/v1/weather/reverse-geocode?latitude={lat}&longitude={lon}`: Locality and district resolution via OpenStreetMap Nominatim with BigDataCloud secondary fallback and clean coordinate formatting fallback.
+- **Location Integrity (Device GPS vs. Manual Selection)**:
+  - **Browser Geolocation**: Initiated exclusively via user consent prompt through `navigator.geolocation`. Only marked as **GPS Verified** after the browser returns valid coordinates (`status: "granted"`).
+  - **Manual Selection**: Users can select from major Indian agricultural regions or type custom coordinates (`status: "manual"`). Marked with a distinct pin icon (`📌 Manual Selection`).
+  - **Prominent Place Name Resolution**: When reverse-geocoding succeeds, the returned locality, city/town, district, state, and country are formatted into a clean, deduplicated place name (e.g., `Kothnur, Bengaluru, Karnataka, India`). If geocoding fails or is rate-limited, weather continues to display uninterrupted with a clear `Place name unavailable` label and coordinates shown in the subtitle.
+  - **Current User Location vs. Registered Farm Monitoring Separation**: Current device weather/location (`UserLiveWeatherWidget`) and registered farm plots (`FarmPlotMonitoringCard`) operate on two completely separate data flows. Registered farm plots use their own stored cadastral coordinates and never overwrite or borrow the user's browser location.
+- **Caching & Rate Protection**: Thread-safe in-memory cache keyed by rounded coordinates (`round(lat, 3), round(lon, 3)` for geocoding; `round(lat, 4), round(lon, 4)` for weather) with 1800-second (30-minute) TTL (`WEATHER_CACHE_TTL_SECONDS`).
+
+### E1. Live Farm Monitoring & Multi-Plot Architecture
+- **Multi-Farm Grid**: The "Live Farm Monitoring & Sensors" view displays all registered plots belonging to the authenticated user as individual cards (`FarmPlotMonitoringCard`), each keyed by its stable UUID.
+- **Isolated Per-Plot Telemetry**: Each farm card independently fetches its own active crop cycle, latest inferred prediction, live Open-Meteo weather station readings, Sentinel-2 NDVI canopy observations, and early warning risk trends. Metrics from one farm never bleed into or overwrite another.
+- **Lifecycle & Registration Refresh**: Adding a new plot automatically refreshes the monitoring card list via window focus and session event listeners without requiring logout or application restart.
+- **Zero Fabrication**: When telemetry or satellite passes are unavailable, cards display explicit unavailable states rather than synthetic or fabricated placeholder data.
+
+### E2. Google Earth Engine (GEE) & Sentinel-2 NDVI Pipeline
+- **Collection**: Harmonized Sentinel-2 Level-2A Surface Reflectance (`COPERNICUS/S2_SR_HARMONIZED`).
+- **Cloud & Shadow Masking**: Dual-stage filtering combining Sentinel-2 Scene Classification Layer (SCL) and QA60 bitmask:
+  - SCL bands 3 (cloud shadow), 8 (cloud medium probability), 9 (cloud high probability), 10 (cirrus), and 11 (snow) are masked.
+  - QA60 bit 10 (opaque clouds) and bit 11 (cirrus) are bitwise masked.
+- **NDVI Formula**: Standard normalized difference vegetation index:
+  $$\text{NDVI} = \frac{\text{B8 (NIR, 842 nm)} - \text{B4 (Red, 665 nm)}}{\text{B8} + \text{B4}}$$
+- **Spatial Reduction**: Cloud reduction executed directly on Google Earth Engine servers at 10m native spatial resolution across farm cadastral polygon geometries (`ee.Reducer.mean()`, `median()`, `minMax()`, `stdDev()`, `count()`). Zero raw raster arrays are downloaded to the backend.
+- **Operational Status & Fallbacks**:
+  - **In Development / Testing**: If Google Earth Engine credentials (`GEE_PROJECT_ID`, `GEE_SERVICE_ACCOUNT_EMAIL`, `GEE_PRIVATE_KEY`) are not provisioned, the provider safely returns status `SATELLITE_NOT_CONFIGURED` without crashing.
+  - **Cloud Obscuration**: If cloud cover exceeds 30% over the 45-day window, status `SATELLITE_NO_VALID_OBSERVATION` is recorded, and the pipeline gracefully defaults to historical district baselines.
+  - **NDVI Interpretation**: NDVI is strictly interpreted as a vegetation vigor and green canopy density indicator, **not** as standalone proof of crop failure. Observation date and valid pixel counts are always displayed alongside values.
 
 ### F. Data & Persistence
 - **Supabase PostgreSQL**: Manages 10 core domain tables (`users`, `farms`, `farm_crops`, `predictions`, `recommendations`, `weather_observations`, `satellite_observations`, `farm_alerts`, `farm_feedback`, `audit_logs`).
@@ -219,6 +271,8 @@ flowchart TD
 
 | Feature | Subsystem | Status | Implementation Details |
 |---|---|---|---|
+| **One-Login Experience** | Frontend / Auth | **`IMPLEMENTED`** | Unified authentication: all users log into the single application with immediate farmer dashboard access. |
+| **Integrated Expert Workbench** | Frontend / UI | **`IMPLEMENTED`** | One-click access from sidebar to deep diagnostics, SHAP, and Neuro-Fuzzy with return-to-farmer button. |
 | **Live Weather Risk Prediction** | ML / Backend / UI | **`IMPLEMENTED`** | Real-time Open-Meteo telemetry merged with crop growth stage baselines. |
 | **SHAP Explainability** | ML / Backend / UI | **`IMPLEMENTED`** | Top-3 risk contributors, protective factors, and waterfall charts. |
 | **Farm & Crop Management** | Backend / Database / UI | **`IMPLEMENTED`** | CRUD operations with polygon boundary geometry (Shoelace area) & village fields. |

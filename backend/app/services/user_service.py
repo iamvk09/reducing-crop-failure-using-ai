@@ -35,12 +35,108 @@ class UserService:
         self._users: Dict[str, UserProfileEntity] = {}
         self._lock = threading.Lock()
 
-    def get_or_create_profile(self, user: AuthenticatedUser) -> UserProfileResponse:
+    def _is_valid_uuid(self, val: str) -> bool:
+        try:
+            import uuid
+            uuid.UUID(str(val))
+            return True
+        except (ValueError, AttributeError, TypeError):
+            return False
+
+    def get_or_create_profile(self, user: AuthenticatedUser, user_token: Optional[str] = None) -> UserProfileResponse:
         """Retrieve profile for authenticated user or initialize if first visit."""
+        from backend.app.core.supabase import supabase_client
+
+        with self._lock:
+            profile = self._users.get(user.id)
+            if profile:
+                return self._to_response(profile)
+
+        # Check Supabase if live configured and user ID is a valid UUID
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if supabase_client.is_live_configured() and self._is_valid_uuid(user.id):
+            try:
+                rows = supabase_client.select("users", params={"id": f"eq.{user.id}"})
+                if rows and len(rows) > 0:
+                    r = rows[0]
+                    created_at_val = (
+                        datetime.datetime.fromisoformat(r["created_at"])
+                        if isinstance(r.get("created_at"), str)
+                        else now
+                    )
+                    updated_at_val = (
+                        datetime.datetime.fromisoformat(r["updated_at"])
+                        if isinstance(r.get("updated_at"), str)
+                        else now
+                    )
+                    profile = UserProfileEntity(
+                        id=r["id"],
+                        email=r.get("email") or user.email,
+                        full_name=r.get("full_name") or user.full_name,
+                        role=r.get("role") or user.role,
+                        phone_number=r.get("phone_number") or user.phone_number,
+                        preferred_language=r.get("preferred_language") or user.preferred_language or "en",
+                        sms_notifications_enabled=bool(r.get("sms_notifications_enabled", False)),
+                        sms_consent_timestamp=datetime.datetime.fromisoformat(r["sms_consent_timestamp"]) if r.get("sms_consent_timestamp") else None,
+                        whatsapp_notifications_enabled=bool(r.get("whatsapp_notifications_enabled", False)),
+                        whatsapp_consent_timestamp=datetime.datetime.fromisoformat(r["whatsapp_consent_timestamp"]) if r.get("whatsapp_consent_timestamp") else None,
+                        is_active=bool(r.get("is_active", True)),
+                        created_at=created_at_val,
+                        updated_at=updated_at_val,
+                    )
+                    with self._lock:
+                        self._users[user.id] = profile
+                    return self._to_response(profile)
+                else:
+                    # User not in database yet, create initial record
+                    new_user_data = {
+                        "id": user.id,
+                        "email": user.email,
+                        "full_name": user.full_name,
+                        "role": user.role,
+                        "phone_number": user.phone_number,
+                        "preferred_language": user.preferred_language or "en",
+                        "is_active": True,
+                    }
+                    try:
+                        created_row = supabase_client.insert("users", new_user_data)
+                        if created_row:
+                            r = created_row
+                            created_at_val = (
+                                datetime.datetime.fromisoformat(r["created_at"])
+                                if isinstance(r.get("created_at"), str)
+                                else now
+                            )
+                            updated_at_val = (
+                                datetime.datetime.fromisoformat(r["updated_at"])
+                                if isinstance(r.get("updated_at"), str)
+                                else now
+                            )
+                            profile = UserProfileEntity(
+                                id=r.get("id", user.id),
+                                email=r.get("email") or user.email,
+                                full_name=r.get("full_name") or user.full_name,
+                                role=r.get("role") or user.role,
+                                phone_number=r.get("phone_number") or user.phone_number,
+                                preferred_language=r.get("preferred_language") or user.preferred_language or "en",
+                                is_active=True,
+                                created_at=created_at_val,
+                                updated_at=updated_at_val,
+                            )
+                            with self._lock:
+                                self._users[user.id] = profile
+                            return self._to_response(profile)
+                    except Exception as ins_err:
+                        from backend.app.core.logging import logger
+                        logger.warning("Supabase insert user record skipped: %s", ins_err)
+            except Exception as e:
+                from backend.app.core.logging import logger
+                logger.warning("Supabase user profile lookup failed: %s", e)
+
+        # Fallback to local memory profile
         with self._lock:
             profile = self._users.get(user.id)
             if not profile:
-                now = datetime.datetime.now(datetime.timezone.utc)
                 profile = UserProfileEntity(
                     id=user.id,
                     email=user.email,
@@ -91,6 +187,25 @@ class UserService:
                     db_patch["whatsapp_notifications_enabled"] = is_enabled
                     db_patch["whatsapp_consent_timestamp"] = now.isoformat() if is_enabled else None
 
+                # Verify record exists or upsert only if valid UUID
+                if self._is_valid_uuid(user.id):
+                    try:
+                        existing = supabase_client.select("users", params={"id": f"eq.{user.id}"})
+                        if not existing:
+                            init_data = {
+                                "id": user.id,
+                                "email": user.email,
+                                "full_name": user.full_name,
+                                "role": user.role,
+                                "phone_number": user.phone_number,
+                                "preferred_language": user.preferred_language or "en",
+                                "is_active": True,
+                            }
+                            supabase_client.insert("users", init_data)
+                    except Exception as precheck_err:
+                        from backend.app.core.logging import logger
+                        logger.warning("Supabase pre-check user lookup skipped: %s", precheck_err)
+
                 supabase_client.update("users", db_patch, params={"id": f"eq.{user.id}"}, user_token=user_token)
             except Exception as db_err:
                 from backend.app.core.logging import logger
@@ -140,9 +255,52 @@ class UserService:
 
     def get_user_profile(self, user_id: str) -> Optional[UserProfileResponse]:
         """Fetch profile for user by ID if it exists."""
+        from backend.app.core.supabase import supabase_client
+
         with self._lock:
             profile = self._users.get(user_id)
-            return self._to_response(profile) if profile else None
+            if profile:
+                return self._to_response(profile)
+
+        if supabase_client.is_live_configured() and self._is_valid_uuid(user_id):
+            try:
+                rows = supabase_client.select("users", params={"id": f"eq.{user_id}"})
+                if rows and len(rows) > 0:
+                    r = rows[0]
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    created_at_val = (
+                        datetime.datetime.fromisoformat(r["created_at"])
+                        if isinstance(r.get("created_at"), str)
+                        else now
+                    )
+                    updated_at_val = (
+                        datetime.datetime.fromisoformat(r["updated_at"])
+                        if isinstance(r.get("updated_at"), str)
+                        else now
+                    )
+                    profile = UserProfileEntity(
+                        id=r["id"],
+                        email=r.get("email"),
+                        full_name=r.get("full_name"),
+                        role=r.get("role", "farmer"),
+                        phone_number=r.get("phone_number"),
+                        preferred_language=r.get("preferred_language", "en"),
+                        sms_notifications_enabled=bool(r.get("sms_notifications_enabled", False)),
+                        sms_consent_timestamp=datetime.datetime.fromisoformat(r["sms_consent_timestamp"]) if r.get("sms_consent_timestamp") else None,
+                        whatsapp_notifications_enabled=bool(r.get("whatsapp_notifications_enabled", False)),
+                        whatsapp_consent_timestamp=datetime.datetime.fromisoformat(r["whatsapp_consent_timestamp"]) if r.get("whatsapp_consent_timestamp") else None,
+                        is_active=bool(r.get("is_active", True)),
+                        created_at=created_at_val,
+                        updated_at=updated_at_val,
+                    )
+                    with self._lock:
+                        self._users[user_id] = profile
+                    return self._to_response(profile)
+            except Exception as e:
+                from backend.app.core.logging import logger
+                logger.warning("Supabase get_user_profile query failed: %s", e)
+
+        return None
 
     def clear(self) -> None:
         """Clear user profiles (used for tests)."""

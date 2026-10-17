@@ -40,23 +40,36 @@ export default function UserProfileView({
   const [isUpdatingNotif, setIsUpdatingNotif] = useState<boolean>(false);
   const [notifSuccess, setNotifSuccess] = useState<string | null>(null);
 
+  const [profileLoading, setProfileLoading] = useState<boolean>(!initialProfile);
+
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setProfileLoading(false);
+      return;
+    }
+    setProfileLoading(true);
     getUserProfile(token)
       .then((p) => {
         setProfile(p);
         if (p.full_name) setFullName(p.full_name);
         if (p.phone_number) setPhoneNumber(p.phone_number);
       })
-      .catch((e) => console.error("Error refreshing profile:", e));
+      .catch((e) => {
+        console.warn("Could not retrieve profile record from server:", e);
+      })
+      .finally(() => {
+        setProfileLoading(false);
+      });
 
     getNotificationPreferences(token)
       .then((prefs) => {
         setNotifPrefs(prefs);
-        setSmsConsent(prefs.sms_notifications_enabled);
-        setWhatsappConsent(prefs.whatsapp_notifications_enabled);
+        setSmsConsent(Boolean(prefs?.sms_notifications_enabled));
+        setWhatsappConsent(Boolean(prefs?.whatsapp_notifications_enabled));
       })
-      .catch((e) => console.error("Error fetching notification preferences:", e));
+      .catch((e) => {
+        console.warn("Notification preferences unavailable or unconfigured:", e);
+      });
   }, [token]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {

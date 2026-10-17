@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@shared/context/AuthContext";
@@ -14,6 +14,7 @@ import { getFarmVegetationSummary } from "@shared/api/satellite";
 import { getFarmMonitoring } from "@shared/api/monitoring";
 import { listFarmAlerts, acknowledgeFarmAlert, resolveFarmAlert } from "@shared/api/alerts";
 import { UserLiveWeatherWidget } from "@shared/components/UserLiveWeatherWidget";
+import { FarmPlotMonitoringCard } from "../components/FarmPlotMonitoringCard";
 import {
   CurrentWeatherResponse,
   DailyForecastItem,
@@ -243,6 +244,8 @@ export default function UnifiedDashboard() {
   // Farm Telemetry State
   const [farms, setFarms] = useState<Farm[]>([]);
   const [selectedFarm, setSelectedFarm] = useState<Farm | null>(null);
+  const [isFarmsLoading, setIsFarmsLoading] = useState<boolean>(true);
+  const [farmsError, setFarmsError] = useState<string | null>(null);
   const [crops, setCrops] = useState<FarmCrop[]>([]);
   const [activeCrop, setActiveCrop] = useState<FarmCrop | null>(null);
   const [latestFarmPrediction, setLatestFarmPrediction] = useState<PredictionResponse | null>(null);
@@ -302,17 +305,55 @@ export default function UnifiedDashboard() {
   }, [user, authLoading, router]);
 
   // Load farms when authenticated
-  useEffect(() => {
+  const refreshFarms = useCallback(async () => {
     if (!token) return;
-    listFarms(token)
-      .then((farmList) => {
-        setFarms(farmList);
-        if (farmList.length > 0 && !selectedFarm) {
-          setSelectedFarm(farmList[0]);
-        }
-      })
-      .catch((e) => console.error("Error loading farms:", e));
+    setIsFarmsLoading(true);
+    setFarmsError(null);
+    try {
+      const farmList = await listFarms(token);
+      setFarms(farmList);
+      if (farmList.length > 0) {
+        setSelectedFarm((prev) => {
+          if (!prev) return farmList[0];
+          const exists = farmList.find((f) => f.id === prev.id);
+          return exists || farmList[0];
+        });
+      } else {
+        setSelectedFarm(null);
+      }
+    } catch (e: any) {
+      console.error("Error loading farms:", e);
+      setFarmsError(e?.message || "Failed to load registered farms.");
+    } finally {
+      setIsFarmsLoading(false);
+    }
   }, [token]);
+
+  useEffect(() => {
+    refreshFarms();
+
+    const handleWindowFocus = () => {
+      refreshFarms();
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "crop_ai_farms_updated") {
+        refreshFarms();
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("focus", handleWindowFocus);
+      window.addEventListener("storage", handleStorageChange);
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("focus", handleWindowFocus);
+        window.removeEventListener("storage", handleStorageChange);
+      }
+    };
+  }, [refreshFarms]);
 
   // Load farm details when selectedFarm changes
   useEffect(() => {
@@ -698,6 +739,33 @@ export default function UnifiedDashboard() {
           </div>
         </div>
 
+        {/* Top-Left User Profile Quick Access */}
+        <div className="bg-[#15231a] border border-[#243d2e] rounded-xl p-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="w-7 h-7 rounded-full bg-emerald-900 border border-emerald-500/80 flex items-center justify-center text-xs text-white shrink-0">
+              {role === "expert" ? "🔬" : "👨‍🌾"}
+            </div>
+            <div className="truncate">
+              <span className="block text-xs font-bold text-white truncate">
+                {profile?.full_name || user?.email?.split("@")[0] || "My Account"}
+              </span>
+              <span className="block text-[10px] text-gray-400 truncate">
+                {user?.email || "Authenticated User"}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`px-2 py-1 rounded text-[11px] font-bold transition shrink-0 ${
+              activeTab === "profile"
+                ? "bg-emerald-700 text-white"
+                : "bg-[#1c3024] hover:bg-[#254231] text-emerald-300 border border-[#2d4d38]"
+            }`}
+          >
+            {language === "hi" ? "प्रोफ़ाइल" : "Profile"}
+          </button>
+        </div>
+
         {/* Header: Choose your field */}
         <div className="space-y-1">
           <h2 className="text-base font-bold text-white tracking-tight">
@@ -833,44 +901,33 @@ export default function UnifiedDashboard() {
           </select>
         </div>
 
-        {/* Divider + For Agriculture Experts */}
+        {/* Agriculture Experts Workbench Section */}
         <div className="pt-3 border-t border-[#294332] space-y-2">
-          <h3 className="text-xs font-bold text-gray-200">
-            {t("expert_heading", language)}
-          </h3>
-          <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-300">
-            <input
-              type="checkbox"
-              checked={showExpertTools}
-              onChange={(e) => setShowExpertTools(e.target.checked)}
-              className="accent-emerald-600 rounded"
-            />
-            <span>{t("expert_toggle", language)}</span>
-          </label>
-          <p className="text-[11px] text-gray-500 leading-snug">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-gray-200">
+              {t("expert_heading", language)}
+            </h3>
+            <span className="text-[10px] text-sky-400 font-mono">V2 Diagnostics</span>
+          </div>
+          <p className="text-[11px] text-gray-400 leading-snug">
             {t("expert_caption", language)}
           </p>
 
           {/* Expert Workbench Navigation Button */}
           <button
             onClick={() => setActiveTab("expert")}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition ${
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition shadow ${
               activeTab === "expert"
-                ? "bg-sky-900 border border-sky-500 text-white shadow"
-                : isExpertAuthorized
-                ? "bg-[#152735] hover:bg-[#1a3244] border border-sky-800 text-sky-200"
-                : "bg-[#18231c] hover:bg-[#1e2e23] border border-[#2d4a36] text-gray-300"
+                ? "bg-sky-900 border border-sky-400 text-white ring-1 ring-sky-500"
+                : "bg-gradient-to-r from-[#122330] to-[#152735] hover:from-[#172c3d] hover:to-[#1a3244] border border-sky-800 text-sky-200"
             }`}
           >
-            <span>🔬 {t("open_expert_workbench", language)}</span>
-            <span
-              className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                isExpertAuthorized
-                  ? "bg-sky-950 text-sky-300 border border-sky-800"
-                  : "bg-amber-950 text-amber-300 border border-amber-800"
-              }`}
-            >
-              {isExpertAuthorized ? "Expert Role" : "Protected"}
+            <div className="flex items-center gap-2">
+              <span className="text-sm">🔬</span>
+              <span>{t("open_expert_workbench", language)}</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-sky-950 text-sky-300 border border-sky-700">
+              {role === "expert" ? "Expert" : "Full Access"}
             </span>
           </button>
         </div>
@@ -1246,30 +1303,6 @@ export default function UnifiedDashboard() {
             >
               <span>📜</span>
               <span>{language === "hi" ? "पूर्वानुमान इतिहास" : "Prediction History"}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("expert")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
-                activeTab === "expert"
-                  ? "bg-sky-900 text-sky-100 border border-sky-500/80 shadow-sm"
-                  : "bg-[#101e28] text-sky-400 hover:text-white hover:bg-[#162734]"
-              }`}
-            >
-              <span>🔬</span>
-              <span>{language === "hi" ? "विशेषज्ञ कार्यक्षेत्र" : "Open Expert Workbench"}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("profile")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap ${
-                activeTab === "profile"
-                  ? "bg-[#1f3b2b] text-white border border-emerald-500/60 shadow-sm"
-                  : "bg-[#152119] text-gray-400 hover:text-white hover:bg-[#1a2b20]"
-              }`}
-            >
-              <span>👤</span>
-              <span>{language === "hi" ? "मेरी प्रोफ़ाइल" : "My Profile"}</span>
             </button>
           </div>
         </div>
@@ -2104,95 +2137,119 @@ export default function UnifiedDashboard() {
                 <p className="text-xs text-gray-400 mt-0.5">
                   {language === "hi"
                     ? "वास्तविक समय ओपन-मेटियो मौसम और सेंटिनल-2 गूगल अर्थ इंजन वनस्पति टेलीमेट्री।"
-                    : "Real-time Open-Meteo weather and Sentinel-2 Google Earth Engine vegetation telemetry."}
+                    : "Real-time Open-Meteo weather and Sentinel-2 Google Earth Engine vegetation telemetry for all registered plots."}
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={handleEvaluateFarmRisk}
-                  disabled={isEvaluatingFarm || !selectedFarm}
-                  className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 disabled:bg-gray-700 text-white text-xs font-bold rounded-xl transition shadow flex items-center gap-2"
+                  onClick={refreshFarms}
+                  disabled={isFarmsLoading}
+                  className="px-3 py-2 bg-[#1b2b20] hover:bg-[#23382a] border border-[#2d4735] text-emerald-300 text-xs font-bold rounded-xl transition shadow flex items-center gap-1.5"
+                  title="Refresh farm plots"
                 >
-                  {isEvaluatingFarm
-                    ? (language === "hi" ? "मूल्यांकन जारी है..." : "Evaluating...")
-                    : `🔍 ${t("predict_risk_btn", language)}`}
+                  <span className={isFarmsLoading ? "animate-spin" : ""}>🔄</span>
+                  <span>{language === "hi" ? "ताज़ा करें" : "Refresh Plots"}</span>
                 </button>
+                <Link
+                  href="/farmer/farms/new"
+                  className="px-3.5 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow flex items-center gap-1.5"
+                >
+                  <span>➕</span>
+                  <span>{t("add_farm", language)}</span>
+                </Link>
+                {selectedFarm && (
+                  <button
+                    onClick={handleEvaluateFarmRisk}
+                    disabled={isEvaluatingFarm}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:bg-gray-700 text-white text-xs font-bold rounded-xl transition shadow flex items-center gap-2"
+                  >
+                    {isEvaluatingFarm
+                      ? (language === "hi" ? "मूल्यांकन जारी है..." : "Evaluating...")
+                      : `🔍 ${t("predict_risk_btn", language)}`}
+                  </button>
+                )}
               </div>
             </div>
 
-            {selectedFarm ? (
-              <div className="space-y-5">
-                {/* Farm Meta Bar */}
-                <div className="bg-[#17221b] border border-[#23352a] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <h3 className="font-bold text-white text-base">{selectedFarm.name}</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {selectedFarm.district}, {selectedFarm.state} · {t("area_hectares", language)}: {selectedFarm.area_hectares || "Not specified"} ha
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-gray-400">{t("current_crop", language)}:</span>
-                    <span className="font-bold text-white bg-[#1e2c23] px-2.5 py-1 rounded border border-[#2d4034]">
-                      {activeCrop ? `${localize_value(activeCrop.crop, language)} (${localize_value(activeCrop.season, language)})` : t("no_crops_yet", language)}
-                    </span>
-                    {!activeCrop && (
-                      <Link
-                        href={`/farmer/farms/${selectedFarm.id}/crop`}
-                        className="text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg"
-                      >
-                        ➕ {t("add_crop", language)}
-                      </Link>
-                    )}
-                    <Link
-                      href={`/farmer/farms/${selectedFarm.id}`}
-                      className="text-emerald-400 hover:text-emerald-300 font-bold ml-2"
-                    >
-                      {language === "hi" ? "सीमा संपादित करें ➔" : "Edit Boundary ➔"}
-                    </Link>
-                  </div>
+            {/* Loading state */}
+            {isFarmsLoading && farms.length === 0 ? (
+              <div className="py-16 text-center bg-[#17221b] rounded-2xl border border-[#23352a] space-y-3">
+                <span className="animate-spin text-3xl inline-block">⏳</span>
+                <p className="text-sm font-medium text-gray-300">
+                  {language === "hi" ? "पंजीकृत खेतों को लोड किया जा रहा है..." : "Loading registered farms..."}
+                </p>
+              </div>
+            ) : farmsError ? (
+              /* Error state */
+              <div className="p-6 bg-rose-950/40 border border-rose-800/60 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-rose-300 font-bold text-sm">
+                  <span>⚠️</span>
+                  <span>{farmsError}</span>
+                </div>
+                <p className="text-xs text-gray-400">
+                  {language === "hi"
+                    ? "खेतों की सूची प्राप्त करने में त्रुटि हुई। कृपया नेटवर्क जांचें या पुनः प्रयास करें।"
+                    : "Unable to load farm plots from the API backend. Please check connectivity or try refreshing."}
+                </p>
+                <button
+                  onClick={refreshFarms}
+                  className="px-4 py-2 bg-rose-900/60 hover:bg-rose-800 text-white text-xs font-bold rounded-xl transition"
+                >
+                  🔄 Retry Loading Farms
+                </button>
+              </div>
+            ) : farms.length > 0 ? (
+              /* All registered farms rendered as individual monitoring cards */
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-xs text-gray-400 px-1">
+                  <span>
+                    Showing {farms.length} registered plot{farms.length === 1 ? "" : "s"}.
+                    {selectedFarm && ` Active selection: ${selectedFarm.name}`}
+                  </span>
+                  <span className="text-[11px] text-gray-500">
+                    Each card isolates telemetry & Sentinel-2 observations
+                  </span>
                 </div>
 
-                {/* Telemetry Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-[#17221b] border border-[#23352a] rounded-xl p-4">
-                    <p className="text-xs text-gray-400 uppercase font-semibold">{t("crop_risk", language)}</p>
-                    <p className="text-2xl font-black text-white mt-1">
-                      {latestFarmPrediction ? latestFarmPrediction.risk_percentage : (language === "hi" ? "कोई भविष्यवाणी नहीं" : "No prediction")}
-                    </p>
-                  </div>
-                  <div className="bg-[#17221b] border border-[#23352a] rounded-xl p-4">
-                    <p className="text-xs text-gray-400 uppercase font-semibold">{t("live_weather", language)}</p>
-                    <p className="text-lg font-bold text-white mt-1">
-                      {farmWeather ? `${farmWeather.temperature} °C · ${farmWeather.relative_humidity}% RH` : t("loading", language)}
-                    </p>
-                  </div>
-                  <div className="bg-[#17221b] border border-[#23352a] rounded-xl p-4">
-                    <p className="text-xs text-gray-400 uppercase font-semibold">Sentinel-2 NDVI</p>
-                    <p className="text-lg font-bold text-white mt-1">
-                      {farmVegetation?.latest_ndvi !== null && farmVegetation?.latest_ndvi !== undefined
-                        ? Number(farmVegetation.latest_ndvi).toFixed(3)
-                        : (language === "hi" ? "कोई उपग्रह डेटा नहीं" : "No satellite pass")}
-                    </p>
-                  </div>
-                  <div className="bg-[#17221b] border border-[#23352a] rounded-xl p-4">
-                    <p className="text-xs text-gray-400 uppercase font-semibold">{t("risk_trend_title", language)}</p>
-                    <p className="text-base font-bold text-white mt-1">
-                      {farmMonitoring?.risk_trend?.trend_direction === "increasing"
-                        ? (language === "hi" ? "📈 बढ़ रहा है" : "📈 Increasing")
-                        : farmMonitoring?.risk_trend?.trend_direction === "decreasing"
-                        ? (language === "hi" ? "📉 घट रहा है" : "📉 Decreasing")
-                        : (language === "hi" ? "⚖️ स्थिर" : "⚖️ Stable")}
-                    </p>
-                  </div>
+                <div className="grid grid-cols-1 gap-5">
+                  {farms.map((farm) => (
+                    <FarmPlotMonitoringCard
+                      key={farm.id}
+                      farm={farm}
+                      isSelected={selectedFarm?.id === farm.id}
+                      onSelect={(f) => setSelectedFarm(f)}
+                      externalPrediction={selectedFarm?.id === farm.id ? latestFarmPrediction : undefined}
+                      isParentEvaluating={selectedFarm?.id === farm.id && isEvaluatingFarm}
+                      onPredictionSuccess={(pred) => {
+                        setLatestFarmPrediction(pred);
+                        // Refresh monitoring telemetry for the selected farm
+                        getFarmMonitoring(farm.id, token).then((mon) => {
+                          if (mon) setFarmMonitoring(mon);
+                        }).catch(() => null);
+                        listFarmAlerts(farm.id, token).then((alerts) => {
+                          setFarmAlerts(alerts);
+                        }).catch(() => null);
+                      }}
+                      token={token}
+                      language={language}
+                    />
+                  ))}
                 </div>
               </div>
             ) : (
-              <div className="text-center py-10 bg-[#17221b] rounded-2xl border border-[#23352a] space-y-3">
-                <p className="text-sm text-gray-400">{t("no_farms_yet", language)}</p>
+              /* Empty state */
+              <div className="text-center py-12 bg-[#17221b] rounded-2xl border border-[#23352a] space-y-3">
+                <span className="text-3xl block">🚜</span>
+                <p className="text-sm text-gray-300 font-bold">{t("no_farms_yet", language)}</p>
+                <p className="text-xs text-gray-400 max-w-md mx-auto">
+                  {language === "hi"
+                    ? "आपने अभी तक कोई खेत पंजीकृत नहीं किया है। वास्तविक समय की मौसम और उपग्रह निगरानी शुरू करने के लिए अपना पहला खेत जोड़ें।"
+                    : "You haven't registered any farm plots yet. Add your first plot with boundary or coordinates to begin live weather and satellite monitoring."}
+                </p>
                 <Link
                   href="/farmer/farms/new"
-                  className="inline-block px-5 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs"
+                  className="inline-block px-5 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition"
                 >
                   {t("add_farm", language)}
                 </Link>
@@ -2217,6 +2274,7 @@ export default function UnifiedDashboard() {
               token={token}
               role={role}
               language={language}
+              onReturnToFarmer={() => setActiveTab("field")}
             />
           </div>
         )}
@@ -2232,112 +2290,6 @@ export default function UnifiedDashboard() {
             onLanguageChange={(lang) => setLanguage(lang)}
             onSignOut={() => signOut()}
           />
-        )}
-
-        {/* ----------------------------------------------------------- */}
-        {/* 4. EXPERT TOOLS SECTION (Toggled via Sidebar Checkbox)       */}
-        {/* ----------------------------------------------------------- */}
-        {showExpertTools && (
-          <div className="pt-6 border-t border-[#294332] space-y-6">
-            <h2 className="text-2xl font-black text-white">{t("expert_tools_title", language)}</h2>
-            <div className="expert-note">
-              {t("expert_note_text", language)}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left: Model Contribution & Performance */}
-              <div className="lg:col-span-7 bg-[#17221b] border border-[#23352a] rounded-2xl p-5 space-y-4">
-                <h3 className="font-bold text-white text-sm">{t("model_contribution_view", language)}</h3>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center py-1.5 border-b border-[#23352a]">
-                    <span className="text-gray-300">{language === "hi" ? "वैश्विक मॉडल (Global Model)" : "Global Model"}</span>
-                    <span className="font-mono font-bold text-white">
-                      {(currentDistrictRecord.consensus_risk * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-1.5 border-b border-[#23352a]">
-                    <span className="text-gray-300">{language === "hi" ? "क्षेत्र-विशिष्ट मॉडल (Region-Specific Model)" : "Region-Specific Model"}</span>
-                    <span className="font-mono font-bold text-white">
-                      {(Math.min(0.95, currentDistrictRecord.consensus_risk * 1.02) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-1.5 border-b border-[#23352a]">
-                    <span className="text-gray-300">{language === "hi" ? "फसल-विशिष्ट मॉडल (Crop-Specific Model)" : "Crop-Specific Model"}</span>
-                    <span className="font-mono font-bold text-white">
-                      {(Math.max(0.05, currentDistrictRecord.consensus_risk * 0.98) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-[#23352a]">
-                  <h3 className="font-bold text-white text-sm mb-2">{t("model_performance_title", language)}</h3>
-                  <div className="overflow-x-auto rounded-lg border border-[#2b3e32]">
-                    <table className="w-full text-left text-xs text-gray-300">
-                      <thead className="bg-[#121c16] text-gray-400 text-[10px] uppercase">
-                        <tr>
-                          <th className="py-2 px-3">Model</th>
-                          <th className="py-2 px-3">ROC-AUC</th>
-                          <th className="py-2 px-3">F1-Score</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#23352a]">
-                        <tr>
-                          <td className="py-2 px-3 font-semibold text-white">logistic_regression</td>
-                          <td className="py-2 px-3 font-mono">0.714</td>
-                          <td className="py-2 px-3 font-mono">0.564</td>
-                        </tr>
-                        <tr>
-                          <td className="py-2 px-3 font-semibold text-white">random_forest</td>
-                          <td className="py-2 px-3 font-mono">0.713</td>
-                          <td className="py-2 px-3 font-mono">0.515</td>
-                        </tr>
-                        <tr>
-                          <td className="py-2 px-3 font-semibold text-white">gradient_boosting</td>
-                          <td className="py-2 px-3 font-mono">0.712</td>
-                          <td className="py-2 px-3 font-mono">0.365</td>
-                        </tr>
-                        <tr>
-                          <td className="py-2 px-3 font-semibold text-white">extra_trees</td>
-                          <td className="py-2 px-3 font-mono">0.712</td>
-                          <td className="py-2 px-3 font-mono">0.545</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: Feature Importance & Explainability */}
-              <div className="lg:col-span-5 bg-[#17221b] border border-[#23352a] rounded-2xl p-5 space-y-4">
-                <h3 className="font-bold text-white text-sm">{t("explainability_title", language)}</h3>
-                <div className="space-y-2 text-xs">
-                  {[
-                    { f: "SuitabilityScore", imp: 0.518 },
-                    { f: "Rainfall", imp: 0.101 },
-                    { f: "SoilType (Alluvial)", imp: 0.093 },
-                    { f: "NDVI Flowering", imp: 0.079 },
-                    { f: "YieldIndex", imp: 0.078 },
-                    { f: "Humidity", imp: 0.054 },
-                    { f: "SoilMoisture", imp: 0.054 },
-                    { f: "WaterStress", imp: 0.05 },
-                  ].map((item) => (
-                    <div key={item.f} className="space-y-1">
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-gray-300">{localize_feature(item.f, language)}</span>
-                        <span className="font-mono text-gray-400">{(item.imp * 100).toFixed(1)}%</span>
-                      </div>
-                      <div className="w-full bg-[#121c16] h-1.5 rounded-full overflow-hidden">
-                        <div
-                          className="bg-emerald-500 h-full rounded-full"
-                          style={{ width: `${item.imp * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
         )}
       </main>
 

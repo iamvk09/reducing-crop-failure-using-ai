@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from backend.app.core.logging import logger
 from backend.app.services.satellite.schemas import SatelliteObservationResponse
 from backend.app.services.weather.schemas import CurrentWeatherResponse, WeatherObservationRecord
-from src.live_prediction import NUMERIC_BOUNDS, VALID_CATEGORIES, validate_prediction_input
+from src.live_prediction import NUMERIC_BOUNDS, VALID_CATEGORIES, normalize_soil_type, normalize_state, validate_prediction_input
 
 
 # Agronomic flowering windows (Days After Sowing - DAS) for major Indian crops
@@ -477,21 +477,23 @@ class FeatureAssembler:
         # 1. Categorical Features (6) - Live from Farm & Crop Records
         # ---------------------------------------------------------------------
         # State
-        features["State"] = farm_state
+        norm_state = normalize_state(farm_state) if farm_state else None
+        state_val = norm_state or farm_state
+        features["State"] = state_val
         provenance_map["State"] = FeatureProvenanceItem(
             feature_name="State",
-            value=farm_state,
+            value=state_val,
             source_type="live_farm",
-            source_reference="Farm Profile",
+            source_reference=f"Farm Profile ({farm_state})" if (farm_state and farm_state != state_val) else "Farm Profile",
             is_live=True,
             is_baseline=False,
             is_derived=False,
             freshness="static",
-            calculation_method="Direct farm state selection",
+            calculation_method="Direct farm state selection (canonical normalized)",
         )
 
         # Region (Derived from district geographical mapping)
-        region_val = farm_region or baseline_info.get("region") or f"{farm_state}-Region"
+        region_val = farm_region or baseline_info.get("region") or f"{state_val}-Region"
         features["Region"] = region_val
         provenance_map["Region"] = FeatureProvenanceItem(
             feature_name="Region",
@@ -534,14 +536,16 @@ class FeatureAssembler:
         )
 
         # SoilType
-        soil = crop_soil_type or farm_soil_type or feature_baselines.get("SoilType", "Medium Black")
-        has_soil = bool(crop_soil_type or farm_soil_type)
+        raw_soil = crop_soil_type or farm_soil_type
+        norm_soil = normalize_soil_type(raw_soil) if raw_soil else None
+        soil = norm_soil or feature_baselines.get("SoilType", "Medium Black")
+        has_soil = bool(raw_soil)
         features["SoilType"] = soil
         provenance_map["SoilType"] = FeatureProvenanceItem(
             feature_name="SoilType",
             value=soil,
             source_type="live_farm" if has_soil else "historical_baseline",
-            source_reference="Farm/Crop Profile" if has_soil else "district_dataset.csv",
+            source_reference=f"Farm/Crop Profile ({raw_soil})" if (has_soil and raw_soil != soil) else ("Farm/Crop Profile" if has_soil else "district_dataset.csv"),
             is_live=has_soil,
             is_baseline=not has_soil,
             is_derived=False,

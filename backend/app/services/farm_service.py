@@ -18,6 +18,7 @@ from backend.app.schemas.farm import (
     FarmUpdateRequest,
 )
 from backend.app.services.audit_service import audit_service
+from src.live_prediction import normalize_soil_type, normalize_state
 
 
 class FarmService:
@@ -40,18 +41,22 @@ class FarmService:
         farm_id = str(uuid.uuid4())
         region = farm_in.region or f"{farm_in.state}-Region"
 
+        # Canonical normalization for categorical model fields
+        normalized_state = normalize_state(farm_in.state) if farm_in.state else farm_in.state
+        normalized_soil = normalize_soil_type(farm_in.soil_type) if farm_in.soil_type else farm_in.soil_type
+
         farm_data = {
             "id": farm_id,
             "user_id": user.id,
             "name": farm_in.name,
-            "state": farm_in.state,
+            "state": normalized_state,
             "district": farm_in.district,
             "region": region,
             "latitude": farm_in.latitude,
             "longitude": farm_in.longitude,
             "area_hectares": farm_in.area_hectares,
             "village": farm_in.village,
-            "soil_type": farm_in.soil_type,
+            "soil_type": normalized_soil,
             "irrigation_level": farm_in.irrigation_level,
             "boundary_geojson": farm_in.boundary_geojson,
         }
@@ -122,6 +127,11 @@ class FarmService:
             return None
 
         update_data = farm_update.model_dump(exclude_unset=True)
+        if "state" in update_data and update_data["state"]:
+            update_data["state"] = normalize_state(update_data["state"])
+        if "soil_type" in update_data and update_data["soil_type"]:
+            update_data["soil_type"] = normalize_soil_type(update_data["soil_type"])
+
         updated_farm = self.repository.update_farm(farm_id=farm_id, farm_update=update_data, user_token=user_token)
         if not updated_farm:
             return None

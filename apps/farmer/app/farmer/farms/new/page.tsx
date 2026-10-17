@@ -30,6 +30,8 @@ export default function NewFarmPage() {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
       setGpsError("Geolocation is not supported by your browser.");
@@ -53,30 +55,51 @@ export default function NewFarmPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
+    if (isSubmitting) return;
+
+    if (!token) {
+      setError("You must be logged in to register a farm. Please log in or refresh your session.");
+      return;
+    }
+
+    const errors: Record<string, string> = {};
+
+    if (!name.trim() || name.trim().length < 2) {
+      errors.name = "Farm name must be at least 2 characters.";
+    }
+    if (!state.trim() || state.trim().length < 2) {
+      errors.state = "State is required.";
+    }
+    if (!district.trim() || district.trim().length < 2) {
+      errors.district = "District is required.";
+    }
 
     const latNum = parseFloat(latitude);
     const lonNum = parseFloat(longitude);
     const areaNum = areaHectares ? parseFloat(areaHectares) : undefined;
 
     if (isNaN(latNum) || latNum < -90 || latNum > 90) {
-      setError("Please enter a valid Latitude between -90 and 90.");
-      return;
+      errors.latitude = "Please enter a valid Latitude between -90 and 90.";
     }
     if (isNaN(lonNum) || lonNum < -180 || lonNum > 180) {
-      setError("Please enter a valid Longitude between -180 and 180.");
-      return;
+      errors.longitude = "Please enter a valid Longitude between -180 and 180.";
     }
     if (areaNum !== undefined && (isNaN(areaNum) || areaNum <= 0)) {
-      setError("Farm area must be greater than 0 hectares.");
+      errors.areaHectares = "Farm area must be greater than 0 hectares.";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setError("Please correct the errors highlighted below.");
       return;
     }
 
+    setFieldErrors({});
     setIsSubmitting(true);
     setError(null);
 
     try {
-      await createFarm(
+      const created = await createFarm(
         {
           name: name.trim(),
           state: state.trim(),
@@ -91,9 +114,30 @@ export default function NewFarmPage() {
         },
         token
       );
-      router.push("/dashboard");
+      if (created && created.id) {
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.setItem("crop_ai_farms_updated", Date.now().toString());
+            window.dispatchEvent(new Event("storage"));
+          } catch {}
+        }
+        router.push("/dashboard");
+      } else {
+        throw new Error("Farm creation was not acknowledged by the backend.");
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to register farm.");
+      let actionMsg = err.message || "Failed to register farm.";
+      if (err.statusCode === 401 || err.statusCode === 403) {
+        actionMsg = "Authentication or permissions error: You are not authorized to create farms. Please log in with a farmer account.";
+      } else if (err.statusCode === 0) {
+        actionMsg = `Network error: ${err.message || "Unable to reach the backend API. Please check your connection."}`;
+      } else if (err.statusCode === 422 && err.details?.errors) {
+        const pydanticErrors = Array.isArray(err.details.errors)
+          ? err.details.errors.map((e: any) => `${e.loc?.join(".")}: ${e.msg}`).join("; ")
+          : "";
+        actionMsg = `Validation error: ${pydanticErrors || err.message}`;
+      }
+      setError(actionMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -130,10 +174,18 @@ export default function NewFarmPage() {
               required
               minLength={2}
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: "" }));
+              }}
               placeholder="e.g. North Plot 1"
-              className="w-full bg-slate-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 font-medium"
+              className={`w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 font-medium ${
+                fieldErrors.name ? "border-red-400 bg-red-50/30" : "border-gray-300"
+              }`}
             />
+            {fieldErrors.name && (
+              <p className="text-xs text-red-600 mt-1">{fieldErrors.name}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -145,10 +197,18 @@ export default function NewFarmPage() {
                 type="text"
                 required
                 value={state}
-                onChange={(e) => setState(e.target.value)}
+                onChange={(e) => {
+                  setState(e.target.value);
+                  if (fieldErrors.state) setFieldErrors((prev) => ({ ...prev, state: "" }));
+                }}
                 placeholder="e.g. Maharashtra"
-                className="w-full bg-slate-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 font-medium"
+                className={`w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm text-gray-900 font-medium ${
+                  fieldErrors.state ? "border-red-400 bg-red-50/30" : "border-gray-300"
+                }`}
               />
+              {fieldErrors.state && (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.state}</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
@@ -158,10 +218,18 @@ export default function NewFarmPage() {
                 type="text"
                 required
                 value={district}
-                onChange={(e) => setDistrict(e.target.value)}
+                onChange={(e) => {
+                  setDistrict(e.target.value);
+                  if (fieldErrors.district) setFieldErrors((prev) => ({ ...prev, district: "" }));
+                }}
                 placeholder="e.g. Pune"
-                className="w-full bg-slate-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 font-medium"
+                className={`w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm text-gray-900 font-medium ${
+                  fieldErrors.district ? "border-red-400 bg-red-50/30" : "border-gray-300"
+                }`}
               />
+              {fieldErrors.district && (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.district}</p>
+              )}
             </div>
           </div>
 
@@ -187,10 +255,18 @@ export default function NewFarmPage() {
                 step="0.1"
                 min="0.01"
                 value={areaHectares}
-                onChange={(e) => setAreaHectares(e.target.value)}
+                onChange={(e) => {
+                  setAreaHectares(e.target.value);
+                  if (fieldErrors.areaHectares) setFieldErrors((prev) => ({ ...prev, areaHectares: "" }));
+                }}
                 placeholder="e.g. 2.5"
-                className="w-full bg-slate-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 font-medium"
+                className={`w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm text-gray-900 font-medium ${
+                  fieldErrors.areaHectares ? "border-red-400 bg-red-50/30" : "border-gray-300"
+                }`}
               />
+              {fieldErrors.areaHectares && (
+                <p className="text-xs text-red-600 mt-1">{fieldErrors.areaHectares}</p>
+              )}
             </div>
           </div>
 
@@ -268,12 +344,17 @@ export default function NewFarmPage() {
                 onChange={(e) => setSoilType(e.target.value)}
                 className="w-full bg-slate-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 font-medium"
               >
-                <option value="Black">Black Soil</option>
                 <option value="Alluvial">Alluvial Soil</option>
-                <option value="Red">Red Soil</option>
+                <option value="Black">Black Soil</option>
+                <option value="Clay Loam">Clay Loam / Clayey Soil</option>
                 <option value="Laterite">Laterite Soil</option>
+                <option value="Loam">Loam / Loamy Soil</option>
+                <option value="Loamy Sand">Loamy Sand Soil</option>
+                <option value="Medium Black">Medium Black Soil</option>
+                <option value="Red Loam">Red Loam Soil</option>
+                <option value="Red Sandy Loam">Red Sandy Loam Soil</option>
                 <option value="Sandy">Sandy Soil</option>
-                <option value="Clayey">Clayey Soil</option>
+                <option value="Sandy Loam">Sandy Loam Soil</option>
               </select>
             </div>
             <div>

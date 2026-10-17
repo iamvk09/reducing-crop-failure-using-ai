@@ -4,6 +4,7 @@ const path = require("path");
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@crop-risk/shared"],
+  outputFileTracingRoot: path.join(__dirname, "../../"),
   webpack: (config) => {
     config.resolve.alias["@shared"] = path.resolve(__dirname, "../shared");
     return config;

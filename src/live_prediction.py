@@ -69,6 +69,86 @@ VALID_CATEGORIES = {
     "IrrigationLevel": ["High", "Low", "Medium"],
 }
 
+# Defensible, agronomically sound aliases for categorical SoilType
+# Strict mapping rules:
+# - "Clayey" / "Clay" / "Heavy Clay" -> "Clay Loam" (the trained model's fine-textured clay taxonomy)
+# - "Loamy" -> "Loam"
+# - Ambiguous terms (e.g. "Silt", "Peat", "Chalky") are NOT silently mapped and must fail with clear guidance.
+SOIL_TYPE_ALIASES: Dict[str, str] = {
+    "clayey": "Clay Loam",
+    "clay": "Clay Loam",
+    "clayey soil": "Clay Loam",
+    "heavy clay": "Clay Loam",
+    "loamy": "Loam",
+    "loamy soil": "Loam",
+    "alluvial soil": "Alluvial",
+    "black soil": "Black",
+    "laterite soil": "Laterite",
+    "sandy soil": "Sandy",
+}
+
+# Defensible, standard aliases / abbreviations for categorical State
+STATE_NAME_ALIASES: Dict[str, str] = {
+    "orissa": "Odisha",
+    "pondicherry": "Puducherry",
+    "uttaranchal": "Uttarakhand",
+    "jammu & kashmir": "Jammu and Kashmir",
+    "j&k": "Jammu and Kashmir",
+    "up": "Uttar Pradesh",
+    "mp": "Madhya Pradesh",
+    "ap": "Andhra Pradesh",
+    "wb": "West Bengal",
+    "tn": "Tamil Nadu",
+    "hp": "Himachal Pradesh",
+}
+
+
+def normalize_state(state: Optional[str]) -> Optional[str]:
+    """Normalize user/farm state string into model's valid taxonomy.
+
+    Returns the canonical categorical value if matched case-insensitively or via known alias,
+    or the trimmed original string. Does NOT silently map unknown or ambiguous states to an arbitrary default.
+    """
+    if not state or not isinstance(state, str):
+        return state
+
+    cleaned = state.strip()
+    # Check exact case-insensitive match against VALID_CATEGORIES["State"]
+    for valid in VALID_CATEGORIES["State"]:
+        if cleaned.lower() == valid.lower():
+            return valid
+
+    # Check known aliases/abbreviations
+    alias_match = STATE_NAME_ALIASES.get(cleaned.lower())
+    if alias_match:
+        return alias_match
+
+    return cleaned
+
+
+def normalize_soil_type(soil: Optional[str]) -> Optional[str]:
+    """Normalize user/farm soil type string into model's valid taxonomy.
+
+    Returns the canonical categorical value if matched or aliased, or the trimmed original string.
+    Does NOT silently substitute ambiguous or unknown values.
+    """
+    if not soil or not isinstance(soil, str):
+        return soil
+
+    cleaned = soil.strip()
+    # Check exact case-insensitive match against VALID_CATEGORIES["SoilType"]
+    for valid in VALID_CATEGORIES["SoilType"]:
+        if cleaned.lower() == valid.lower():
+            return valid
+
+    # Check defensible aliases
+    alias_match = SOIL_TYPE_ALIASES.get(cleaned.lower())
+    if alias_match:
+        return alias_match
+
+    return cleaned
+
+
 NUMERIC_BOUNDS = {
     "Year": (1990, 2100),
     "Rainfall": (0.0, 1500.0),
@@ -112,6 +192,21 @@ def validate_prediction_input(
             val = input_data.get(cat_col)
             if not isinstance(val, str) or not val.strip():
                 return False, f"Categorical feature '{cat_col}' must be a non-empty string."
+
+            # Apply state normalization if applicable
+            if cat_col == "State":
+                norm_state = normalize_state(val)
+                if norm_state in valid_vals:
+                    val = norm_state
+                    input_data[cat_col] = norm_state
+
+            # Apply soil type normalization if applicable
+            if cat_col == "SoilType":
+                norm_soil = normalize_soil_type(val)
+                if norm_soil in valid_vals:
+                    val = norm_soil
+                    input_data[cat_col] = norm_soil
+
             if val not in valid_vals:
                 return (
                     False,

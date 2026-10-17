@@ -32,6 +32,14 @@ export default function FarmDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [vegError, setVegError] = useState<string | null>(null);
 
+  // Soil & Profile Editing State
+  const [isEditingProfile, setIsEditingProfile] = useState<boolean>(false);
+  const [editSoilType, setEditSoilType] = useState<string>("Medium Black");
+  const [editIrrigation, setEditIrrigation] = useState<string>("Medium");
+  const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false);
+  const [profileSaveSuccess, setProfileSaveSuccess] = useState<boolean>(false);
+  const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
@@ -48,6 +56,8 @@ export default function FarmDetailPage() {
         const farmData = await getFarm(farmId, token);
         setFarm(farmData);
         setBoundary(farmData.boundary_geojson || null);
+        setEditSoilType(farmData.soil_type || "Medium Black");
+        setEditIrrigation(farmData.irrigation_level || "Medium");
         const cropData = await listFarmCrops(farmId, token);
         setCrops(cropData);
       } catch (err: any) {
@@ -102,6 +112,37 @@ export default function FarmDetailPage() {
     }
   };
 
+  const handleSaveProfile = async () => {
+    if (!token || !farmId) return;
+    setIsSavingProfile(true);
+    setProfileSaveSuccess(false);
+    setProfileSaveError(null);
+    try {
+      const updated = await updateFarm(
+        farmId,
+        {
+          soil_type: editSoilType,
+          irrigation_level: editIrrigation,
+        },
+        token
+      );
+      if (updated && updated.id) {
+        setFarm(updated);
+        setEditSoilType(updated.soil_type || "Medium Black");
+        setEditIrrigation(updated.irrigation_level || "Medium");
+        setProfileSaveSuccess(true);
+        setIsEditingProfile(false);
+        setTimeout(() => setProfileSaveSuccess(false), 5000);
+      } else {
+        throw new Error("Server did not return confirmed updated farm profile.");
+      }
+    } catch (err: any) {
+      setProfileSaveError(err.message || "Failed to save farm profile changes.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar portalType="farmer" />
@@ -129,9 +170,57 @@ export default function FarmDetailPage() {
           <div className="space-y-6">
             {/* Farm Specification Card */}
             <div className="bg-white rounded-2xl p-6 border border-emerald-100 shadow-sm space-y-4">
-              <h3 className="font-bold text-gray-900 text-base border-b border-gray-100 pb-2">
-                Location & Characteristics
-              </h3>
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <h3 className="font-bold text-gray-900 text-base">
+                  Location & Characteristics
+                </h3>
+                <div className="flex items-center gap-2">
+                  {isEditingProfile ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleSaveProfile}
+                        disabled={isSavingProfile}
+                        className="text-xs font-bold bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg shadow-sm transition"
+                      >
+                        {isSavingProfile ? "Saving..." : "💾 Save Changes"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditSoilType(farm.soil_type || "Medium Black");
+                          setEditIrrigation(farm.irrigation_level || "Medium");
+                          setIsEditingProfile(false);
+                          setProfileSaveError(null);
+                        }}
+                        className="text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingProfile(true)}
+                      className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-lg transition"
+                    >
+                      ✏️ Edit Soil / Irrigation
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {profileSaveSuccess && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-semibold">
+                  ✅ Farm profile updated successfully!
+                </div>
+              )}
+
+              {profileSaveError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-900 rounded-xl text-xs font-semibold">
+                  ⚠️ {profileSaveError}
+                </div>
+              )}
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
                 <div>
@@ -154,11 +243,43 @@ export default function FarmDetailPage() {
                 </div>
                 <div>
                   <span className="text-gray-500 block">{t("soil_type", language)}</span>
-                  <span className="font-bold text-gray-900 text-sm">{farm.soil_type || "Medium Black"}</span>
+                  {isEditingProfile ? (
+                    <select
+                      value={editSoilType}
+                      onChange={(e) => setEditSoilType(e.target.value)}
+                      className="mt-1 w-full bg-slate-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 font-medium"
+                    >
+                      <option value="Alluvial">Alluvial Soil</option>
+                      <option value="Black">Black Soil</option>
+                      <option value="Clay Loam">Clay Loam / Clayey Soil</option>
+                      <option value="Laterite">Laterite Soil</option>
+                      <option value="Loam">Loam / Loamy Soil</option>
+                      <option value="Loamy Sand">Loamy Sand Soil</option>
+                      <option value="Medium Black">Medium Black Soil</option>
+                      <option value="Red Loam">Red Loam Soil</option>
+                      <option value="Red Sandy Loam">Red Sandy Loam Soil</option>
+                      <option value="Sandy">Sandy Soil</option>
+                      <option value="Sandy Loam">Sandy Loam Soil</option>
+                    </select>
+                  ) : (
+                    <span className="font-bold text-gray-900 text-sm">{farm.soil_type || "Medium Black"}</span>
+                  )}
                 </div>
                 <div>
                   <span className="text-gray-500 block">{t("irrigation_level", language)}</span>
-                  <span className="font-bold text-gray-900 text-sm">{farm.irrigation_level || "Medium"}</span>
+                  {isEditingProfile ? (
+                    <select
+                      value={editIrrigation}
+                      onChange={(e) => setEditIrrigation(e.target.value)}
+                      className="mt-1 w-full bg-slate-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 font-medium"
+                    >
+                      <option value="High">High (Canal / Borewell Available)</option>
+                      <option value="Medium">Medium (Partial Irrigation)</option>
+                      <option value="Low">Low (Rainfed / Limited Water)</option>
+                    </select>
+                  ) : (
+                    <span className="font-bold text-gray-900 text-sm">{farm.irrigation_level || "Medium"}</span>
+                  )}
                 </div>
               </div>
             </div>

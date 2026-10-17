@@ -211,10 +211,10 @@ class PredictionRepository:
                     rec_params = {"prediction_id": f"eq.{pred['id']}"}
                     recs = self.client.select("recommendations", params=rec_params, user_token=user_token)
                     pred["recommendations"] = recs[0] if recs else None
-                if records:
-                    return records
+                # If live configured and query succeeded, return records directly (even if empty)
+                return records
             except SupabaseClientError as e:
-                logger.warning("Supabase list predictions failed for farm %s: %s", farm_id, str(e))
+                logger.warning("Supabase list predictions failed for farm %s: %s. Falling back to local store.", farm_id, str(e))
 
         # 2. Fallback to local store
         with self._lock:
@@ -261,10 +261,10 @@ class PredictionRepository:
                     rec_params = {"prediction_id": f"eq.{pred['id']}"}
                     recs = self.client.select("recommendations", params=rec_params, user_token=user_token)
                     pred["recommendations"] = recs[0] if recs else None
-                if records:
-                    return records
+                # If live configured and query succeeded, return records directly (even if empty)
+                return records
             except SupabaseClientError as e:
-                logger.warning("Supabase list predictions failed for user %s: %s", user_id, str(e))
+                logger.warning("Supabase list predictions failed for user %s: %s. Falling back to local store.", user_id, str(e))
 
         with self._lock:
             preds = [p for p in self._local_predictions.values() if p.get("user_id") == user_id]

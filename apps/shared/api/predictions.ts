@@ -18,6 +18,7 @@ export async function predictForFarm(
     method: "POST",
     body: JSON.stringify(payload),
     token,
+    timeoutMs: 45000,
   });
 }
 

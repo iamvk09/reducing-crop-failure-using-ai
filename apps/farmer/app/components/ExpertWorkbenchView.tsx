@@ -51,12 +51,14 @@ interface ExpertWorkbenchViewProps {
   token: string | null;
   role: string;
   language: string;
+  onReturnToFarmer?: () => void;
 }
 
 export default function ExpertWorkbenchView({
   token,
   role,
   language,
+  onReturnToFarmer,
 }: ExpertWorkbenchViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<ExpertSubTab>("overview");
   const [farms, setFarms] = useState<Farm[]>([]);
@@ -466,7 +468,16 @@ export default function ExpertWorkbenchView({
             Technical diagnostic workstation: TreeExplainer SHAP attributions, Takagi-Sugeno Neuro-Fuzzy benchmarking, closed-loop drift tracking, and ground-truth validation.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onReturnToFarmer && (
+            <button
+              onClick={onReturnToFarmer}
+              className="py-1.5 px-3 bg-emerald-950 hover:bg-emerald-900 text-emerald-200 border border-emerald-700 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow"
+            >
+              <span>←</span>
+              <span>{language === "hi" ? "किसान डैशबोर्ड पर वापस जाएं" : "Return to Farmer Operations"}</span>
+            </button>
+          )}
           <span className="text-[11px] text-sky-300 font-mono bg-sky-950/60 px-3 py-1.5 rounded-lg border border-sky-800">
             Session: Active JWT (RLS Protected)
           </span>
@@ -517,6 +528,119 @@ export default function ExpertWorkbenchView({
               <span className="text-[11px] text-purple-300 font-semibold block uppercase">Neuro-Fuzzy Benchmark</span>
               <p className="text-2xl font-black text-purple-400 mt-1">0.7169</p>
               <span className="text-[10px] text-gray-400">Val ROC-AUC (zero leakage)</span>
+            </div>
+          </div>
+
+          {/* Technical Ensemble & Baseline Performance Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left: Model Contribution & Ensemble Performance */}
+            <div className="lg:col-span-7 bg-[#13222d] border border-sky-900/60 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-sky-800/40 pb-3">
+                <h3 className="font-bold text-sky-100 text-sm flex items-center gap-2">
+                  <span>📐</span> Production ML Ensemble Architecture & Calibration
+                </h3>
+                <span className="text-[10px] font-mono bg-sky-950 px-2 py-0.5 rounded text-sky-300 border border-sky-800">
+                  VotingClassifier (Soft)
+                </span>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-center py-1.5 border-b border-sky-950">
+                  <span className="text-gray-300">Global Pan-India Classifier (Calibrated)</span>
+                  <span className="font-mono font-bold text-sky-200">Weight: 40%</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-sky-950">
+                  <span className="text-gray-300">Agro-Climatic Regional Classifier (Sub-regional)</span>
+                  <span className="font-mono font-bold text-sky-200">Weight: 35%</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-sky-950">
+                  <span className="text-gray-300">Crop-Specific Physiology Classifier</span>
+                  <span className="font-mono font-bold text-sky-200">Weight: 25%</span>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <h4 className="font-bold text-white text-xs mb-2">Production Ensemble Performance (Holdout Validation)</h4>
+                <div className="overflow-x-auto rounded-lg border border-sky-950">
+                  <table className="w-full text-left text-xs text-gray-300">
+                    <thead className="bg-[#0b1720] text-gray-400 text-[10px] uppercase">
+                      <tr>
+                        <th className="py-2 px-3">Model Architecture</th>
+                        <th className="py-2 px-3">ROC-AUC</th>
+                        <th className="py-2 px-3">F1-Score</th>
+                        <th className="py-2 px-3">Calibration (Brier)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-sky-950 font-mono">
+                      <tr>
+                        <td className="py-2 px-3 font-semibold text-white font-sans">Logistic Regression (L2)</td>
+                        <td className="py-2 px-3">0.714</td>
+                        <td className="py-2 px-3">0.564</td>
+                        <td className="py-2 px-3">0.182</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-3 font-semibold text-white font-sans">Random Forest (n=200)</td>
+                        <td className="py-2 px-3">0.713</td>
+                        <td className="py-2 px-3">0.515</td>
+                        <td className="py-2 px-3">0.185</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-3 font-semibold text-white font-sans">Gradient Boosting (LightGBM)</td>
+                        <td className="py-2 px-3">0.712</td>
+                        <td className="py-2 px-3">0.365</td>
+                        <td className="py-2 px-3">0.189</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 px-3 font-semibold text-white font-sans">Extra Trees Classifier</td>
+                        <td className="py-2 px-3">0.712</td>
+                        <td className="py-2 px-3">0.545</td>
+                        <td className="py-2 px-3">0.186</td>
+                      </tr>
+                      <tr className="bg-sky-950/40 text-emerald-300 font-bold">
+                        <td className="py-2 px-3 text-emerald-300 font-sans">Ensemble Consensus (Soft Voting)</td>
+                        <td className="py-2 px-3">0.716</td>
+                        <td className="py-2 px-3">0.572</td>
+                        <td className="py-2 px-3">0.178</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Feature Importance & Global Attributions */}
+            <div className="lg:col-span-5 bg-[#13222d] border border-sky-900/60 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-sky-800/40 pb-3">
+                <h3 className="font-bold text-sky-100 text-sm flex items-center gap-2">
+                  <span>📊</span> Global Feature Importance (16 Features)
+                </h3>
+                <span className="text-[10px] text-gray-400">Gini / Permutation</span>
+              </div>
+              <div className="space-y-2 text-xs">
+                {[
+                  { f: "SuitabilityScore", imp: 0.518 },
+                  { f: "Rainfall (Seasonal)", imp: 0.101 },
+                  { f: "SoilType (Alluvial/Black/Red)", imp: 0.093 },
+                  { f: "NDVI Flowering (Sentinel-2)", imp: 0.079 },
+                  { f: "YieldIndex (District Baseline)", imp: 0.078 },
+                  { f: "Humidity (Relative)", imp: 0.054 },
+                  { f: "SoilMoisture (0-7cm)", imp: 0.054 },
+                  { f: "WaterStress (Vapor VPD)", imp: 0.05 },
+                ].map((item) => (
+                  <div key={item.f} className="space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-gray-300">{item.f}</span>
+                      <span className="font-mono text-sky-400 font-bold">{(item.imp * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-[#0b1720] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-sky-500 h-full rounded-full"
+                        style={{ width: `${item.imp * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

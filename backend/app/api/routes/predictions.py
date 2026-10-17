@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from backend.app.api.deps import get_any_authenticated_user, get_client_ip, get_prediction_svc
+from backend.app.api.deps import get_any_authenticated_user, get_client_ip, get_prediction_svc, get_raw_token
 from backend.app.core.config import settings
 from backend.app.core.rate_limiter import check_rate_limit, prediction_limiter
 from backend.app.core.security import AuthenticatedUser
@@ -102,9 +102,10 @@ def list_my_predictions(
     offset: int = 0,
     user: AuthenticatedUser = Depends(get_any_authenticated_user),
     service: PredictionService = Depends(get_prediction_svc),
+    raw_token: Optional[str] = Depends(get_raw_token),
 ) -> List[PredictionResponse]:
     """Retrieve full persisted historical predictions for the currently authenticated user."""
-    return service.list_predictions_for_user(user=user, limit=limit, offset=offset)
+    return service.list_predictions_for_user(user=user, limit=limit, offset=offset, user_token=raw_token)
 
 
 @router.get("/{prediction_id}", response_model=PredictionResponse, summary="Get Prediction by ID")
@@ -112,9 +113,17 @@ def get_prediction(
     prediction_id: str,
     user: AuthenticatedUser = Depends(get_any_authenticated_user),
     service: PredictionService = Depends(get_prediction_svc),
+    raw_token: Optional[str] = Depends(get_raw_token),
 ) -> PredictionResponse:
     """Retrieve details and audit metadata for a specific prediction with tenant isolation."""
-    pred = service.get_prediction(prediction_id=prediction_id, user=user)
+    if prediction_id.lower() in ("history", "my-history"):
+        # Guard against routing ambiguity or client fallback requesting the history endpoint
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid prediction ID '{prediction_id}'. To retrieve prediction history, use GET /api/v1/predictions/history.",
+        )
+
+    pred = service.get_prediction(prediction_id=prediction_id, user=user, user_token=raw_token)
     if not pred:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

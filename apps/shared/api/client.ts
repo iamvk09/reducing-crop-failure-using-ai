@@ -20,7 +20,35 @@ export interface RequestOptions extends RequestInit {
   timeoutMs?: number;
 }
 
-let activeBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const STORAGE_KEY_API_BASE_URL = "crop_ai_active_api_base_url";
+
+function getInitialBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY_API_BASE_URL);
+      if (saved) return saved;
+    } catch {}
+  }
+  return "http://localhost:8000";
+}
+
+let activeBaseUrl = getInitialBaseUrl();
+
+export function getActiveApiBaseUrl(): string {
+  return activeBaseUrl;
+}
+
+export function setActiveApiBaseUrl(url: string): void {
+  activeBaseUrl = url;
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.setItem(STORAGE_KEY_API_BASE_URL, url);
+    } catch {}
+  }
+}
 
 async function executeFetch<T>(
   baseUrl: string,
@@ -84,10 +112,18 @@ async function executeFetch<T>(
     if (error instanceof ApiError) {
       throw error;
     }
-    throw new ApiError(
-      error.message || "Unable to communicate with the backend server.",
-      0
-    );
+    const rawMsg = error?.message || "";
+    const isConnRefused =
+      rawMsg.toLowerCase().includes("failed to fetch") ||
+      rawMsg.toLowerCase().includes("networkerror") ||
+      rawMsg.toLowerCase().includes("econnrefused") ||
+      rawMsg.toLowerCase().includes("connection refused");
+
+    const userFriendlyMsg = isConnRefused
+      ? `Cannot connect to API backend at ${baseUrl}. Ensure the FastAPI server is running.`
+      : rawMsg || "Unable to communicate with the backend server.";
+
+    throw new ApiError(userFriendlyMsg, 0, { originalError: rawMsg, baseUrl });
   }
 }
 
@@ -110,10 +146,10 @@ export async function apiClient<T>(
       if (fallbackUrl) {
         try {
           const res = await executeFetch<T>(fallbackUrl, endpoint, options);
-          activeBaseUrl = fallbackUrl; // Update active port for subsequent requests
+          setActiveApiBaseUrl(fallbackUrl); // Update and persist active port for subsequent requests
           return res;
         } catch (_) {
-          // Re-throw original error if fallback also failed
+          // Re-throw original error with useful connection context
           throw err;
         }
       }

@@ -151,9 +151,7 @@ export const UserLocationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (geo?.state) stateName = geo.state;
         if (geo?.country) countryName = geo.country;
       } catch {
-        // Fallback gracefully
-        if (!placeName) placeName = `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`;
-        if (!locality) locality = `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`;
+        // Leave placeName as null / fallbackLocality if geocoding fails so UI distinguishes place name from coordinates
       } finally {
         setIsGeocodingLoading(false);
       }
@@ -161,8 +159,8 @@ export const UserLocationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const finalLoc: UserLocationState = {
         latitude: lat,
         longitude: lon,
-        placeName: placeName || `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`,
-        locality: locality || `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`,
+        placeName: placeName,
+        locality: locality,
         city: cityName,
         district: districtName,
         state: stateName,

@@ -163,9 +163,21 @@ export const UserLiveWeatherWidget: React.FC<{ compact?: boolean }> = ({ compact
                 <span className="animate-spin text-xs">⏳</span>
                 <span>{t("finding_place_name", language)}</span>
               </span>
-            ) : (
+            ) : location.placeName ? (
               <span className="text-white font-bold text-sm tracking-tight text-emerald-200">
-                {location.placeName || location.locality || (location.latitude !== null ? `${location.latitude.toFixed(4)}°N, ${location.longitude?.toFixed(4)}°E` : t("location_unavailable", language))}
+                {location.placeName}
+              </span>
+            ) : location.locality ? (
+              <span className="text-white font-bold text-sm tracking-tight text-emerald-200">
+                {location.locality}
+              </span>
+            ) : location.latitude !== null && location.longitude !== null ? (
+              <span className="text-amber-200/90 font-medium text-xs tracking-tight italic">
+                {language === "hi" ? "स्थान का नाम अनुपलब्ध (निर्देशांक सक्रिय)" : "Place name unavailable"}
+              </span>
+            ) : (
+              <span className="text-gray-400 font-medium text-xs tracking-tight">
+                {t("location_unavailable", language)}
               </span>
             )}
 
