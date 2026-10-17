@@ -1,0 +1,14 @@
+{
+  "name": "ai-crop-failure-project",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build:farmer": "npm --prefix apps/farmer run build",
+    "build:expert": "npm --prefix apps/expert run build",
+    "build": "npm run build:farmer && npm run build:expert",
+    "test:frontend": "node apps/farmer/test_farmer.js && node apps/expert/test_expert.js"
+  }
+}

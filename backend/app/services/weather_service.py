@@ -1,15 +1,23 @@
-"""Weather service wrapper bridging to src/weather_service.py."""
+"""Weather service wrapper providing backwards-compatible imports."""
 
-from typing import Any, Dict
-from src.weather_service import get_current_weather
+from backend.app.services.weather import (
+    CurrentWeatherResponse,
+    DailyForecastItem,
+    OpenMeteoProvider,
+    WeatherForecastResponse,
+    WeatherObservationRecord,
+    WeatherProvider,
+    WeatherService,
+    weather_service,
+)
 
-
-class WeatherService:
-    """Service abstraction for live meteorological queries."""
-
-    def get_weather(self, latitude: float, longitude: float) -> Dict[str, Any]:
-        """Fetch live weather data for given coordinates."""
-        return get_current_weather(latitude=latitude, longitude=longitude)
-
-
-weather_service = WeatherService()
+__all__ = [
+    "WeatherService",
+    "weather_service",
+    "WeatherProvider",
+    "OpenMeteoProvider",
+    "CurrentWeatherResponse",
+    "DailyForecastItem",
+    "WeatherForecastResponse",
+    "WeatherObservationRecord",
+]

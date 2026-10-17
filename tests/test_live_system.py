@@ -278,6 +278,26 @@ class TestLiveCropRiskSystem(unittest.TestCase):
         self.assertIn("Scenario", twin_df.columns)
         self.assertIn("RiskScore", twin_df.columns)
 
+    def test_risk_band_boundaries(self):
+        """Verify authoritative risk classification thresholds: Low (<0.45), Medium (0.45-0.70), High (>=0.70)."""
+        from src.recommendation_engine import risk_band
+
+        # Low risk (< 0.45)
+        self.assertEqual(risk_band(0.0), "Low")
+        self.assertEqual(risk_band(0.33), "Low")
+        self.assertEqual(risk_band(0.449), "Low")
+
+        # Medium risk (0.45 <= score < 0.70)
+        self.assertEqual(risk_band(0.45), "Medium")
+        self.assertEqual(risk_band(0.50), "Medium")
+        self.assertEqual(risk_band(0.66), "Medium")
+        self.assertEqual(risk_band(0.699), "Medium")
+
+        # High risk (score >= 0.70)
+        self.assertEqual(risk_band(0.70), "High")
+        self.assertEqual(risk_band(0.85), "High")
+        self.assertEqual(risk_band(1.0), "High")
+
 
 if __name__ == "__main__":
     unittest.main()

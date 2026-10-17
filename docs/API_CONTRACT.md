@@ -4,334 +4,222 @@
 **Base URL:** `/api/v1`  
 **Specification Standard:** OpenAPI 3.1 / RESTful JSON  
 **Authentication Scheme:** `Authorization: Bearer <Supabase_JWT_Token>`  
+**Status Legend:** `[IMPLEMENTED]` | `[PLANNED]`
 
 ---
 
 ## 1. Authentication & User Profile
 
-### 1.1 GET `/api/v1/auth/me`
+### 1.1 GET `/api/v1/me` (and `/api/v1/auth/me`) `[IMPLEMENTED]`
 * **Purpose:** Retrieve the profile and role metadata of the currently authenticated user.
 * **HTTP Method:** `GET`
-* **Authentication:** Required (`Bearer JWT`)
+* **Authentication:** Required (`Authorization: Bearer <JWT>`)
 * **Role Requirement:** `farmer`, `expert`, or `admin`
 * **Request Schema:** None (Headers only)
 * **Response Schema (200 OK):**
   ```json
   {
-    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "id": "11111111-1111-1111-1111-111111111111",
     "email": "farmer@example.com",
-    "full_name": "Ramesh Kumar",
+    "full_name": "Ramesh Patel",
     "role": "farmer",
+    "phone_number": "+919876543210",
+    "preferred_language": "hi",
+    "created_at": "2026-09-26T10:00:00Z",
+    "updated_at": "2026-09-26T10:00:00Z"
+  }
+  ```
+* **Possible Errors:**
+  * `401 Unauthorized`: Missing, expired, or cryptographically invalid JWT token.
+
+### 1.2 PATCH `/api/v1/me` `[IMPLEMENTED]`
+* **Purpose:** Update mutable profile fields (full name, phone number, preferred language).
+* **HTTP Method:** `PATCH`
+* **Authentication:** Required (`Authorization: Bearer <JWT>`)
+* **Role Requirement:** `farmer`, `expert`, or `admin`
+* **Security Guard:** Role, user ID, email, and active status are strictly immutable via this endpoint (prevents privilege escalation).
+* **Request Schema:**
+  ```json
+  {
+    "full_name": "Ramesh K. Patel",
     "phone_number": "+919876543210",
     "preferred_language": "hi"
   }
   ```
+* **Response Schema (200 OK):** `UserProfileResponse`
 * **Possible Errors:**
-  * `401 Unauthorized`: Missing or invalid JWT token.
-  * `404 Not Found`: User profile not found in database.
+  * `401 Unauthorized`: Invalid credentials.
+  * `422 Unprocessable Entity`: Validation failure on phone or length fields.
 
 ---
 
 ## 2. Farm & Crop Management
 
-### 2.1 GET `/api/v1/farms`
-* **Purpose:** List all farm plots registered by the authenticated farmer (or all farms if expert/admin).
+### 2.1 GET `/api/v1/farms` `[IMPLEMENTED]`
+* **Purpose:** List all farm plots accessible to the user (farmers see only own plots; experts/admins see all plots).
 * **HTTP Method:** `GET`
 * **Authentication:** Required
 * **Role Requirement:** `farmer`, `expert`, `admin`
-* **Request Schema:** None
-* **Response Schema (200 OK):**
-  ```json
-  [
-    {
-      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-      "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      "name": "North Field Plot 1",
-      "state": "Maharashtra",
-      "district": "Pune",
-      "region": "Western Plateau",
-      "latitude": 18.5204,
-      "longitude": 73.8567,
-      "area_hectares": 2.5,
-      "soil_type": "Medium Black",
-      "irrigation_level": "Medium",
-      "created_at": "2026-09-26T10:00:00Z"
-    }
-  ]
-  ```
-* **Possible Errors:**
-  * `401 Unauthorized`
+* **Response Schema (200 OK):** Array of `FarmResponse`
 
-### 2.2 POST `/api/v1/farms`
-* **Purpose:** Register a new farm plot.
+### 2.2 POST `/api/v1/farms` `[IMPLEMENTED]`
+* **Purpose:** Register a new farm plot. Automatically binds `user_id` to the authenticated user.
 * **HTTP Method:** `POST`
 * **Authentication:** Required
 * **Role Requirement:** `farmer`, `admin`
-* **Request Schema:**
-  ```json
-  {
-    "name": "North Field Plot 1",
-    "state": "Maharashtra",
-    "district": "Pune",
-    "latitude": 18.5204,
-    "longitude": 73.8567,
-    "area_hectares": 2.5,
-    "soil_type": "Medium Black",
-    "irrigation_level": "Medium"
-  }
-  ```
-* **Response Schema (201 Created):** Same as `FarmResponse`
-* **Possible Errors:**
-  * `400 Bad Request`: Invalid coordinates or location outside supported agro-climatic boundaries.
-  * `422 Unprocessable Entity`: Validation failure on required fields.
+* **Response Schema (201 Created):** `FarmResponse`
 
-### 2.3 GET `/api/v1/farms/{farm_id}`
-* **Purpose:** Retrieve specific farm details by UUID.
+### 2.3 GET `/api/v1/farms/{farm_id}` `[IMPLEMENTED]`
+* **Purpose:** Retrieve specific farm details. Enforces strict ownership isolation for farmers.
 * **HTTP Method:** `GET`
 * **Authentication:** Required
 * **Role Requirement:** `farmer` (own farm), `expert`, `admin`
-* **Response Schema (200 OK):** `FarmResponse` object
-* **Possible Errors:**
-  * `403 Forbidden`: Attempting to access another farmer's plot.
-  * `404 Not Found`: Farm ID not found.
 
-### 2.4 POST `/api/v1/farms/{farm_id}/crops`
-* **Purpose:** Record an active crop planting cycle on a farm.
+### 2.4 PATCH `/api/v1/farms/{farm_id}` `[IMPLEMENTED]`
+* **Purpose:** Update farm attributes. Only the owner or an admin may modify.
+* **HTTP Method:** `PATCH`
+* **Authentication:** Required
+* **Role Requirement:** `farmer` (own farm), `admin`
+
+### 2.5 DELETE `/api/v1/farms/{farm_id}` `[IMPLEMENTED]`
+* **Purpose:** Delete a farm and its associated crops. Only the owner or an admin may delete.
+* **HTTP Method:** `DELETE`
+* **Authentication:** Required
+* **Role Requirement:** `farmer` (own farm), `admin`
+
+### 2.6 POST `/api/v1/farms/{farm_id}/crops` `[IMPLEMENTED]`
+* **Purpose:** Record an active crop planting cycle on a farm owned by the user.
 * **HTTP Method:** `POST`
 * **Authentication:** Required
-* **Role Requirement:** `farmer` (owner), `admin`
-* **Request Schema:**
-  ```json
-  {
-    "crop": "Soybean",
-    "season": "Kharif",
-    "sowing_date": "2026-06-15",
-    "expected_harvest_date": "2026-10-15"
-  }
-  ```
-* **Response Schema (201 Created):**
-  ```json
-  {
-    "id": "f8e7d6c5-b4a3-2109-8765-4321fedcba98",
-    "farm_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-    "crop": "Soybean",
-    "season": "Kharif",
-    "sowing_date": "2026-06-15",
-    "expected_harvest_date": "2026-10-15",
-    "status": "active",
-    "is_active": true,
-    "created_at": "2026-09-26T10:05:00Z"
-  }
-  ```
+* **Role Requirement:** `farmer` (own farm), `admin`
+* **Response Schema (201 Created):** `CropResponse`
 
-### 2.5 GET `/api/v1/farms/{farm_id}/weather`
-* **Purpose:** Retrieve current live weather conditions and 7-day precipitation for a farm plot.
+### 2.7 GET `/api/v1/farms/{farm_id}/crops` `[IMPLEMENTED]`
+* **Purpose:** List all crop cycles recorded for a specific farm.
 * **HTTP Method:** `GET`
 * **Authentication:** Required
-* **Role Requirement:** `farmer` (owner), `expert`, `admin`
-* **Response Schema (200 OK):**
-  ```json
-  {
-    "farm_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-    "temperature_c": 28.4,
-    "humidity_pct": 72.0,
-    "precipitation_mm": 2.5,
-    "soil_moisture_pct": 46.5,
-    "weather_code": 3,
-    "source": "Open-Meteo (Meteorological Model Estimate)",
-    "timestamp": "2026-09-26 15:30",
-    "is_estimate": true
-  }
-  ```
+* **Role Requirement:** `farmer` (own farm), `expert`, `admin`
+* **Response Schema (200 OK):** Array of `CropResponse`
 
-### 2.6 GET `/api/v1/farms/{farm_id}/satellite`
-* **Purpose:** Retrieve vegetation and crop moisture indices derived from Sentinel-2 satellite observations.
-* **HTTP Method:** `GET`
+### 2.8 PATCH `/api/v1/farms/{farm_id}/crops/{crop_id}` `[IMPLEMENTED]`
+* **Purpose:** Update crop stage or harvest status. Enforces farm ownership.
+* **HTTP Method:** `PATCH`
 * **Authentication:** Required
-* **Role Requirement:** `farmer` (owner), `expert`, `admin`
-* **Response Schema (200 OK):**
-  ```json
-  {
-    "farm_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-    "observation_date": "2026-09-24",
-    "ndvi_mean": 0.68,
-    "ndvi_min": 0.52,
-    "ndvi_max": 0.74,
-    "water_stress_index": 0.22,
-    "source": "Sentinel-2 / Derived"
-  }
-  ```
+* **Role Requirement:** `farmer` (own farm), `admin`
+
+### 2.9 DELETE `/api/v1/farms/{farm_id}/crops/{crop_id}` `[IMPLEMENTED]`
+* **Purpose:** Delete a crop cycle record. Enforces farm ownership.
+* **HTTP Method:** `DELETE`
+* **Authentication:** Required
+* **Role Requirement:** `farmer` (own farm), `admin`
 
 ---
 
-## 3. Crop Failure Prediction & Recommendations
+## 3. ML Risk Prediction Engine
 
-### 3.1 POST `/api/v1/predictions`
-* **Purpose:** Generate a real-time crop failure risk evaluation for a field profile.
+### 3.1 POST `/api/v1/farms/{farm_id}/predictions` `[IMPLEMENTED]`
+* **Purpose:** Execute live crop failure prediction for a farm with registered crop & live Open-Meteo weather.
 * **HTTP Method:** `POST`
 * **Authentication:** Required
-* **Role Requirement:** `farmer`, `expert`, `admin`
-* **Request Schema:**
+* **Role Requirement:** `farmer` (own farm), `expert`, `admin`
+* **Request Schema:** `FarmPredictionRequest` (optional overrides & crop_id)
+* **Response Schema (201 Created):**
   ```json
   {
+    "prediction_id": "c1f727b1-5e74-4bf8-bfa9-1582e309cb41",
     "farm_id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-    "state": "Maharashtra",
-    "district": "Pune",
-    "crop": "Soybean",
-    "season": "Kharif",
-    "soil_type": "Medium Black",
-    "irrigation_level": "Medium",
-    "rainfall_override": null,
-    "temperature_override": null,
-    "humidity_override": null,
-    "soil_moisture_override": null,
-    "ndvi_override": null,
-    "water_stress_override": null,
-    "pest_risk_override": null,
-    "suitability_score_override": null,
-    "yield_index_override": null
-  }
-  ```
-* **Response Schema (200 OK):**
-  ```json
-  {
-    "prediction_id": "99e8d7c6-b5a4-3210-fedc-ba9876543210",
+    "crop_id": "87f3e820-bcf5-4cf4-a957-c834a362f6b5",
     "crop": "Soybean",
     "district": "Pune",
     "state": "Maharashtra",
     "season": "Kharif",
-    "risk_probability": 0.4297,
-    "risk_percentage": "43.0%",
+    "risk_probability": 0.184,
+    "risk_percentage": "18.4%",
     "risk_level": "Low",
     "prediction_class": 0,
-    "best_model_name": "logistic_regression",
-    "global_risk": 0.4297,
-    "region_risk": 0.4150,
-    "crop_risk": 0.4410,
-    "consensus_risk": 0.4297,
+    "best_model_name": "agri_ai_runtime_bundle",
+    "global_risk": 0.184,
+    "region_risk": 0.192,
+    "crop_risk": 0.178,
+    "consensus_risk": 0.184,
     "input_features": {
       "Year": 2026,
-      "Rainfall": 140.56,
-      "Temperature": 27.5,
-      "Humidity": 74.0,
-      "SoilMoisture": 48.0,
-      "NDVI_Flowering": 0.696,
-      "WaterStress": 0.193,
-      "PestRisk": 0.462,
-      "SuitabilityScore": 0.764,
-      "YieldIndex": 78.9,
+      "Rainfall": 120.0,
+      "Temperature": 28.5,
+      "Humidity": 64.0,
+      "SoilMoisture": 45.0,
+      "NDVI_Flowering": 0.55,
+      "WaterStress": 0.45,
+      "PestRisk": 0.40,
+      "SuitabilityScore": 0.65,
+      "YieldIndex": 60.0,
       "State": "Maharashtra",
-      "Region": "Western Plateau",
+      "Region": "Central Plateau",
       "Season": "Kharif",
       "Crop": "Soybean",
-      "SoilType": "Medium Black",
+      "SoilType": "Black",
       "IrrigationLevel": "Medium"
     },
     "provenance": {
       "Temperature": "Live weather estimate (Open-Meteo)",
       "Humidity": "Live weather estimate (Open-Meteo)",
       "SoilMoisture": "Live weather estimate (Open-Meteo root-zone moisture)",
-      "Rainfall": "Historical seasonal baseline (District-Crop-Season median)",
-      "NDVI_Flowering": "Historical baseline (District-Crop-Season median)"
+      "Rainfall": "Historical seasonal baseline (District-Crop-Season median)"
     },
-    "disclaimer": "This is a machine-learning estimate based on available meteorological and agronomic data and is not a guarantee of crop failure.",
-    "created_at": "2026-09-26T15:30:00Z"
+    "recommendations": {
+      "recommended_crop": "Soybean",
+      "top_options": [
+        {"crop": "Soybean", "probability": 0.78, "percentage": "78.0%"},
+        {"crop": "Maize", "probability": 0.14, "percentage": "14.0%"}
+      ],
+      "advisory_summary": "Low alert: maintain the current crop plan with routine monitoring."
+    },
+    "created_at": "2026-09-26T10:30:00Z"
   }
   ```
-* **Possible Errors:**
-  * `422 Unprocessable Entity`: Input validation failure (e.g. invalid state/crop, out-of-bounds numeric).
-  * `500 Internal Server Error`: Model execution exception.
 
-### 3.2 GET `/api/v1/recommendations/{district}/{crop}`
-* **Purpose:** Retrieve ranked safer crop alternatives and plain-language advisory guidance.
+### 3.2 GET `/api/v1/farms/{farm_id}/predictions` `[IMPLEMENTED]`
+* **Purpose:** Retrieve all historical risk assessments recorded for a farm in reverse chronological order.
 * **HTTP Method:** `GET`
 * **Authentication:** Required
-* **Response Schema (200 OK):**
-  ```json
-  {
-    "recommended_crop": "Soybean",
-    "top_options": [
-      { "crop": "Soybean", "probability": 0.624, "percentage": "62.4%" },
-      { "crop": "Maize", "probability": 0.215, "percentage": "21.5%" },
-      { "crop": "Cotton", "probability": 0.161, "percentage": "16.1%" }
-    ],
-    "advisory_summary": "Low alert: maintain the current crop plan with routine monitoring.",
-    "farmer_notes": []
-  }
-  ```
+* **Role Requirement:** `farmer` (own farm), `expert`, `admin`
+* **Response Schema (200 OK):** Array of `PredictionResponse`
+
+### 3.3 GET `/api/v1/predictions/{prediction_id}` `[IMPLEMENTED]`
+* **Purpose:** Retrieve a single prediction record by ID with tenant isolation enforcement.
+* **HTTP Method:** `GET`
+* **Authentication:** Required
+* **Role Requirement:** `farmer` (own prediction/farm), `expert`, `admin`
+* **Response Schema (200 OK):** `PredictionResponse`
+
+### 3.4 POST `/api/v1/predictions` `[IMPLEMENTED]`
+* **Purpose:** Direct crop risk prediction with explicit or custom parameters.
+* **HTTP Method:** `POST`
+* **Authentication:** Required
+* **Response Schema (200 OK):** `PredictionResponse`
 
 ---
 
-## 4. Expert Analytics & Diagnostics
+## 4. Expert Analytics & Digital Twin Simulations
 
-### 4.1 POST `/api/v1/experts/explain`
-* **Purpose:** Compute SHAP feature attributions for a given crop profile.
+### 4.1 POST `/api/v1/experts/simulate` `[IMPLEMENTED]`
+* **Purpose:** Run Digital Twin parametric stress simulation.
+* **HTTP Method:** `POST`
+* **Authentication:** Required
+* **Role Requirement:** `expert`, `admin` (Farmers receive 403 Forbidden)
+
+### 4.2 POST `/api/v1/experts/explain` `[IMPLEMENTED]`
+* **Purpose:** Generate SHAP feature importance and waterfall attribution.
 * **HTTP Method:** `POST`
 * **Authentication:** Required
 * **Role Requirement:** `expert`, `admin`
-* **Response Schema (200 OK):**
-  ```json
-  {
-    "explainer_type": "LinearExplainer",
-    "summary": "Risk is mitigated primarily by: SoilMoisture, NDVI_Flowering.",
-    "top_features": [
-      {
-        "feature": "num__SoilMoisture",
-        "display_name": "SoilMoisture",
-        "impact": -0.1452,
-        "abs_impact": 0.1452,
-        "direction": "Decreases Risk"
-      },
-      {
-        "feature": "num__WaterStress",
-        "display_name": "WaterStress",
-        "impact": 0.0894,
-        "abs_impact": 0.0894,
-        "direction": "Increases Risk"
-      }
-    ]
-  }
-  ```
-
-### 4.2 POST `/api/v1/experts/simulate`
-* **Purpose:** Execute Digital Twin custom stress scenarios on an agricultural profile.
-* **HTTP Method:** `POST`
-* **Authentication:** Required
-* **Role Requirement:** `expert`, `admin`
-* **Request Schema:**
-  ```json
-  {
-    "scenario_name": "Severe Drought Test",
-    "updates": {
-      "Rainfall": -40.0,
-      "Temperature": 3.5,
-      "SoilMoisture": -20.0
-    }
-  }
-  ```
-* **Response Schema (200 OK):**
-  ```json
-  {
-    "scenario": "Severe Drought Test",
-    "risk_score": 0.7420,
-    "risk_percentage": "74.2%",
-    "adjusted_features": {
-      "Rainfall": 100.56,
-      "Temperature": 31.0,
-      "Humidity": 74.0,
-      "SoilMoisture": 28.0,
-      "NDVI_Flowering": 0.696,
-      "WaterStress": 0.193
-    }
-  }
-  ```
 
 ---
 
-## 5. Health & Diagnostic Endpoints
+## 5. System Health Checks
 
-### 5.1 GET `/health` and GET `/api/v1/health`
-* **Purpose:** Unauthenticated liveness and readiness probe for load balancers and container orchestrators.
+### 5.1 GET `/health` & GET `/api/v1/health` `[IMPLEMENTED]`
+* **Purpose:** Lightweight liveness and readiness probe.
 * **HTTP Method:** `GET`
 * **Authentication:** None (Public)
 * **Response Schema (200 OK):**
@@ -339,6 +227,7 @@
   {
     "status": "ok",
     "service": "crop-risk-api",
-    "version": "0.1.0"
+    "version": "0.1.0",
+    "environment": "development"
   }
   ```

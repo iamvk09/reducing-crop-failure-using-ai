@@ -10,6 +10,14 @@ venv/
 env/
 ENV/
 
+# Node.js and Next.js builds
+node_modules/
+.next/
+out/
+build/
+.npm/
+*.tsbuildinfo
+
 # Environment and Secrets (NEVER COMMIT)
 .env
 .env.*

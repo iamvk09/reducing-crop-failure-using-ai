@@ -13,7 +13,8 @@ from src.live_prediction import (
     predict_new_case,
 )
 from src.translations import LANGUAGES, localize_feature, localize_map_html, localize_value, translate
-from src.weather_service import get_current_weather
+from src.weather_service import get_current_weather, get_weather_forecast, reverse_geocode_place
+from backend.app.services.alert_service import alert_service
 
 
 st.set_page_config(page_title="Agriculture AI Dashboard", layout="wide")
@@ -228,6 +229,77 @@ t = lambda key, **values: translate(language, key, **values)
 st.title(t("app_title"))
 st.caption(t("app_caption"))
 
+# Automatic User Location & Live Local Weather Widget (Sidebar)
+with sidebar.expander("📍 " + t("user_location_title"), expanded=False):
+    st.caption(t("user_location_caption"))
+    
+    loc_mode = st.radio(
+        "Location Mode",
+        [t("select_manually"), t("use_my_gps")],
+        index=0,
+        key="sb_user_loc_mode",
+        label_visibility="collapsed",
+    )
+    
+    user_lat = None
+    user_lon = None
+    user_loc_name = ""
+    is_gps_verified = False
+
+    if loc_mode == t("use_my_gps"):
+        # Streamlit execution runs on server; notify farmer honestly about client vs manual
+        st.info("ℹ️ " + t("location_unavailable"))
+        st.caption("Never silently using hardcoded GPS. Please verify or input your local coordinates below:")
+        col_lat, col_lon = st.columns(2)
+        with col_lat:
+            user_lat = st.number_input("Latitude (°N)", min_value=-90.0, max_value=90.0, value=18.5204, step=0.0001, key="sb_gps_lat")
+        with col_lon:
+            user_lon = st.number_input("Longitude (°E)", min_value=-180.0, max_value=180.0, value=73.8567, step=0.0001, key="sb_gps_lon")
+        user_loc_name = f"Coordinates ({user_lat:.4f}°N, {user_lon:.4f}°E)"
+        is_gps_verified = True
+    else:
+        preset_localities = {
+            "Pune, Maharashtra": (18.5204, 73.8567),
+            "Amritsar, Punjab": (31.6340, 74.8723),
+            "Indore, Madhya Pradesh": (22.7196, 75.8577),
+            "Varanasi, Uttar Pradesh": (25.3176, 82.9739),
+            "Coimbatore, Tamil Nadu": (11.0168, 76.9558),
+            "Bengaluru, Karnataka": (12.9716, 77.5946),
+            "Kolkata, West Bengal": (22.5726, 88.3639),
+            "Ahmedabad, Gujarat": (23.0225, 72.5714),
+        }
+        selected_preset = st.selectbox(
+            "Select Locality",
+            list(preset_localities.keys()),
+            key="sb_preset_user_loc",
+        )
+        user_lat, user_lon = preset_localities[selected_preset]
+        user_loc_name = selected_preset
+        is_gps_verified = False
+
+    if user_lat is not None and user_lon is not None:
+        user_weather = get_current_weather(user_lat, user_lon)
+        # Reverse geocode to prominent place name
+        geo_result = reverse_geocode_place(user_lat, user_lon)
+        prominent_name = geo_result.get("place_name") if geo_result.get("success") else user_loc_name
+
+        if user_weather.get("success"):
+            badge_text = t("location_detected") if is_gps_verified else t("manual_location")
+            st.markdown(f"**📍 {prominent_name}**")
+            st.caption(f"{user_lat:.4f}°N, {user_lon:.4f}°E · *{badge_text}*")
+            uw_c1, uw_c2 = st.columns(2)
+            with uw_c1:
+                st.metric(t("temperature"), f"{user_weather.get('temperature', '--')} °C")
+                st.metric(t("rainfall"), f"{user_weather.get('precipitation', 0.0)} mm")
+            with uw_c2:
+                st.metric(t("humidity"), f"{user_weather.get('humidity', '--')} %")
+                st.metric(t("wind_speed"), f"{user_weather.get('wind_speed_10m', '--')} km/h")
+            if user_weather.get("soil_moisture_percentage") is not None:
+                st.caption(f"Soil Saturation: {user_weather.get('soil_moisture_percentage')}% (Volumetric: {user_weather.get('soil_moisture_m3m3')} m³/m³)")
+            st.caption(f"Provider: Open-Meteo · Updated: {user_weather.get('timestamp')} · Asia/Kolkata")
+        else:
+            st.error(t("weather_unavailable_err"))
+
 sidebar.header(t("choose_field"))
 sidebar.caption(t("choose_caption"))
 
@@ -406,9 +478,10 @@ with hero_right:
     st.dataframe(top_recommendations, hide_index=True, width="stretch")
     st.caption(t("options_caption"))
 
-live_tab, overview_tab, comparison_tab, twin_tab, map_tab = st.tabs(
-    ["🔮 " + t("tab_live"), t("tab_field"), t("tab_compare"), t("tab_weather"), t("tab_map")]
+live_tab, overview_tab, comparison_tab, twin_tab, map_tab, alerts_tab = st.tabs(
+    ["🔮 " + t("tab_live"), t("tab_field"), t("tab_compare"), t("tab_weather"), t("tab_map"), "🚨 " + t("tab_alerts")]
 )
+
 
 with live_tab:
     st.header(t("live_prediction_heading"))
@@ -511,23 +584,25 @@ with live_tab:
 
     # Live Weather Integration
     st.subheader(t("live_weather"))
+    st.caption(f"📍 {t('farm_weather_distinct_caption')} ({live_district}, {live_state} Centroid: {district_coords[0]:.4f}°N, {district_coords[1]:.4f}°E). Distinct from current user location.")
     with st.spinner("Fetching current live weather from Open-Meteo..."):
         weather_data = get_current_weather(district_coords[0], district_coords[1])
 
-    w_col1, w_col2, w_col3, w_col4 = st.columns(4)
+    w_col1, w_col2, w_col3, w_col4, w_col5 = st.columns(5)
     if weather_data["success"]:
         w_col1.metric("Temperature", f"{weather_data['temperature']} °C")
         w_col2.metric("Humidity", f"{weather_data['humidity']} %")
-        w_col3.metric("Precipitation (Current)", f"{weather_data['precipitation']} mm")
+        w_col3.metric("Precipitation", f"{weather_data['precipitation']} mm")
+        w_col4.metric("Wind Speed", f"{weather_data.get('wind_speed_10m', '--')} km/h")
         if weather_data.get("soil_moisture_percentage") is not None:
-            w_col4.metric(
-                "Soil Moisture (Root-zone)",
+            w_col5.metric(
+                "Soil Moisture",
                 f"{weather_data['soil_moisture_percentage']} %",
                 help=f"Volumetric: {weather_data.get('soil_moisture_m3m3')} m³/m³",
             )
         else:
-            w_col4.metric(
-                "Precipitation (7-day sum)",
+            w_col5.metric(
+                "Precipitation (7-day)",
                 f"{weather_data.get('precipitation_sum_7d', 0.0)} mm",
             )
         st.caption(
@@ -1080,6 +1155,45 @@ with twin_tab:
         )
         st.dataframe(adjusted_view, width="stretch", hide_index=True)
 
+    st.divider()
+    st.subheader(t("forecast_heading"))
+    st.caption(t("forecast_caption"))
+
+    fc_horizon = st.radio(
+        "Forecast Horizon",
+        ["7-day", "14-day"],
+        index=0,
+        horizontal=True,
+        key="twin_forecast_horizon_radio",
+    )
+    requested_days = 14 if fc_horizon == "14-day" else 7
+
+    with st.spinner(f"Retrieving actual {requested_days}-day forecast for {district}..."):
+        coords = (district_baseline["latitude"], district_baseline["longitude"])
+        fc_data = get_weather_forecast(coords[0], coords[1], days=requested_days)
+
+    if fc_data["success"] and fc_data["daily"]:
+        avail = fc_data["available_days"]
+        if avail < requested_days:
+            st.info(f"ℹ️ Provider supplied {avail} days out of {requested_days} requested days for coordinates ({coords[0]}°N, {coords[1]}°E). Displaying actual available horizon.")
+        else:
+            st.caption(f"✓ Displaying full {avail}-day actual forecast from Open-Meteo for ({coords[0]}°N, {coords[1]}°E). Timezone: Asia/Kolkata")
+
+        fc_rows = []
+        for d in fc_data["daily"]:
+            fc_rows.append({
+                "Date": d["date"],
+                "Max Temp (°C)": d["temperature_max"],
+                "Min Temp (°C)": d["temperature_min"],
+                "Precipitation (mm)": d["precipitation_sum"],
+                "Precip Probability (%)": d["precipitation_probability_max"],
+                "Weather Code": d["weather_code"],
+            })
+        fc_df = pd.DataFrame(fc_rows)
+        st.dataframe(fc_df, width="stretch", hide_index=True)
+    else:
+        st.warning(f"⚠️ Live weather forecast unavailable ({fc_data.get('error', 'unknown error')}). Please check network or coordinate availability.")
+
 with map_tab:
     map_left, map_right = st.columns([1.2, 1])
 
@@ -1116,3 +1230,89 @@ with map_tab:
 
         with st.expander(t("weather_examples")):
             st.write(", ".join(DEFAULT_SCENARIOS.keys()))
+
+with alerts_tab:
+    st.subheader("🚨 " + t("tab_alerts"))
+    st.caption(t("alerts_subtitle"))
+
+    diag = alert_service.repo.get_diagnostics_metrics()
+    c_met1, c_met2, c_met3, c_met4 = st.columns(4)
+    c_met1.metric("Active Alerts", diag["active_alerts"])
+    c_met2.metric("Acknowledged", diag["acknowledged_alerts"])
+    c_met3.metric("Resolved", diag["resolved_alerts"])
+    c_met4.metric("Deduplicated", diag["alert_deduplication_count"])
+
+    # Provide alert trigger evaluator tool for the current district field
+    with st.expander("🔍 Evaluate & Trigger Early Warning for Current Field Selection", expanded=False):
+        st.write(f"Current selection: **{district}**, **{crop}**, **{season}** {year} (Risk: **{_format_percent(selected_row['ConsensusRisk'])}**)")
+        evaluate_clicked = st.button("Run Early Warning Evaluation")
+        if evaluate_clicked:
+            from backend.app.schemas.prediction import PredictionResponse, PredictionDataQuality
+            class SimpleFarmObj:
+                id = f"district-{district.lower().replace(' ', '-')}"
+                name = f"{district} District Context"
+            class SimpleCropObj:
+                id = f"crop-{crop.lower()}"
+                crop = crop
+                season = season
+
+            curr_p = PredictionResponse(
+                prediction_id=f"pred-{district.lower()}-{year}-{season.lower()}",
+                farm_id=SimpleFarmObj.id,
+                risk_probability=float(selected_row["ConsensusRisk"]),
+                risk_percentage=f"{selected_row['ConsensusRisk']*100:.1f}%",
+                risk_band=selected_row["RiskLevel"],
+                data_quality=PredictionDataQuality(
+                    weather_status="live_meteo",
+                    satellite_status="baseline",
+                    live_feature_count=7,
+                    total_feature_count=10,
+                )
+            )
+
+            created = alert_service.evaluate_alert_conditions(
+                farm=SimpleFarmObj(),
+                target_crop=SimpleCropObj(),
+                current_pred=curr_p,
+                previous_pred=None,
+            )
+            if created:
+                st.success(f"Generated {len(created)} early warning alert(s) based on current field risk parameters!")
+            else:
+                st.info("Evaluation complete: No new alerts generated (conditions either below threshold or deduplicated).")
+
+    # Display active/historical alerts
+    farm_context_id = f"district-{district.lower().replace(' ', '-')}"
+    all_district_alerts = alert_service.repo.list_for_farm(farm_context_id, limit=50)
+    # If no alerts for this district yet, check if there are any recorded across all farms
+    if not all_district_alerts:
+        all_district_alerts = alert_service.repo.list_all(limit=50)
+
+    if all_district_alerts:
+        for alt in all_district_alerts:
+            severity_color = "#c53030" if alt.get("severity") == "critical" else ("#dd6b20" if alt.get("severity") == "warning" else "#2b6cb0")
+            with st.container():
+                st.markdown(
+                    f"""
+                    <div style="border-left: 4px solid {severity_color}; background: #16221a; padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 0.8rem;">
+                        <span style="color: {severity_color}; font-weight: bold; font-size: 0.85rem; text-transform: uppercase;">
+                            {alt.get('severity', 'info')} · {alt.get('alert_type')}
+                        </span>
+                        <span style="color: #888; font-size: 0.8rem; float: right;">Status: <strong>{alt.get('status')}</strong></span>
+                        <p style="margin: 0.4rem 0 0.2rem 0; color: #eee; font-size: 0.95rem;">{alt.get('trigger_reason')}</p>
+                        <small style="color: #aaa;">Created: {alt.get('created_at')}</small>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                col_act1, col_act2 = st.columns([1, 4])
+                if alt.get("status") == "active":
+                    if col_act1.button("Acknowledge", key=f"ack_{alt.get('id')}"):
+                        alert_service.repo.update_status(alt.get("id"), "acknowledged")
+                        st.rerun()
+                elif alt.get("status") == "acknowledged" and show_expert_tools:
+                    if col_act1.button("Resolve (Expert)", key=f"res_{alt.get('id')}"):
+                        alert_service.repo.update_status(alt.get("id"), "resolved", notes="Resolved via Expert Tools")
+                        st.rerun()
+    else:
+        st.info("✓ " + t("no_alerts"))

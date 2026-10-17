@@ -1,0 +1,1106 @@
+{
+  "info": {
+    "_postman_id": "7a3e8d91-4c12-4f33-91b5-829df83a2100",
+    "name": "AI Crop Failure Decision-Support Platform API",
+    "description": "Production REST API collection for the AI Crop Failure Decision-Support Platform (FastAPI backend). Includes authenticated flows, farm/crop management, ML live inference, weather telemetry, expert simulations, and security test suites.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Health & Status",
+      "item": [
+        {
+          "name": "Root Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Service status is ok', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('ok');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "API v1 Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Version info returned', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('ok');",
+                  "    pm.expect(json.version).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication & Profile",
+      "item": [
+        {
+          "name": "Get Current User Profile (/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "me"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('User profile structure is valid', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('role');",
+                  "    pm.expect(['farmer', 'expert', 'admin']).to.include(json.role);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update User Profile (/me)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Ramesh Patil\",\n  \"preferred_language\": \"mr\",\n  \"phone_number\": \"+919876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "me"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Profile updated successfully', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.full_name).to.eql('Ramesh Patil');",
+                  "    pm.expect(json.preferred_language).to.eql('mr');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Farm Management",
+      "item": [
+        {
+          "name": "List User Farms",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response is an array', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(Array.isArray(json)).to.be.true;",
+                  "    if (json.length > 0) {",
+                  "        pm.environment.set('farm_id', json[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Farm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Baramati Experimental Plot\",\n  \"state\": \"Maharashtra\",\n  \"district\": \"Pune\",\n  \"village\": \"Baramati\",\n  \"latitude\": 18.1513,\n  \"longitude\": 74.5771,\n  \"area_hectares\": 2.8,\n  \"soil_type\": \"Black\",\n  \"irrigation_level\": \"Medium\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Farm ID created and extracted', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.environment.set('farm_id', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Farm by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Farm matches farm_id', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.id).to.eql(pm.environment.get('farm_id'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Crop Management",
+      "item": [
+        {
+          "name": "Register Crop on Farm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"crop\": \"Soybean\",\n  \"season\": \"Kharif\",\n  \"soil_type\": \"Black\",\n  \"irrigation_level\": \"Medium\",\n  \"growth_stage\": \"Flowering\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}/crops",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}", "crops"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Crop ID registered and saved', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.environment.set('crop_id', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Crops on Farm",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}/crops",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}", "crops"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Crops list is returned', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(Array.isArray(json)).to.be.true;",
+                  "    pm.expect(json.length).to.be.greaterThan(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. ML Predictions & Inference",
+      "item": [
+        {
+          "name": "Execute Live Farm Prediction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"temperature_override\": null,\n  \"rainfall_override\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}/predictions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}", "predictions"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Prediction response has valid probability and bands', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('prediction_id');",
+                  "    pm.expect(json).to.have.property('risk_probability');",
+                  "    pm.expect(json.risk_probability).to.be.at.least(0.0).and.at.most(1.0);",
+                  "    pm.expect(['Low', 'Medium', 'High']).to.include(json.risk_level);",
+                  "    pm.expect(json).to.have.property('input_features');",
+                  "    pm.expect(Object.keys(json.input_features).length).to.eql(16);",
+                  "    pm.expect(json).to.have.property('recommendations');",
+                  "    pm.environment.set('prediction_id', json.prediction_id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Farm Prediction History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}/predictions?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}", "predictions"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Predictions array returned', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(Array.isArray(json)).to.be.true;",
+                  "    pm.expect(json.length).to.be.greaterThan(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Prediction by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/predictions/{{prediction_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "predictions", "{{prediction_id}}"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Prediction matches requested prediction_id', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.prediction_id).to.eql(pm.environment.get('prediction_id'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Weather & Telemetry",
+      "item": [
+        {
+          "name": "Get Current Weather for Farm",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}/weather/current",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}", "weather", "current"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Current weather has standard metrics', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json).to.have.property('temperature');",
+                  "    pm.expect(json).to.have.property('relative_humidity');",
+                  "    pm.expect(json).to.have.property('soil_moisture_percentage');",
+                  "    pm.expect(json).to.have.property('source');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Weather Forecast for Farm",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}/weather/forecast?days=7",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}", "weather", "forecast"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Forecast contains disclaimer and 7 days items', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.disclaimer).to.include('agronomic planning');",
+                  "    pm.expect(json.daily.length).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Weather Observation History for Farm",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}/weather/history?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}", "weather", "history"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('History is an array', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(Array.isArray(json)).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Weather by Coordinates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/weather/current?latitude=18.5204&longitude=73.8567",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "18.5204"
+                },
+                {
+                  "key": "longitude",
+                  "value": "73.8567"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Coordinates weather returned', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Satellite & Vegetation Telemetry",
+      "item": [
+        {
+          "name": "Get Latest Satellite Observation for Farm",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}/satellite/latest",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}", "satellite", "latest"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Satellite response contains status and product details', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('status');",
+                  "    pm.expect(json).to.have.property('product');",
+                  "    pm.expect(json).to.have.property('satellite');",
+                  "    pm.expect(json.satellite).to.eql('Sentinel-2');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Farm Vegetation Summary (Farmer Simplified)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}/vegetation",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}", "vegetation"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Vegetation summary contains health status and source', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('vegetation_health');",
+                  "    pm.expect(json).to.have.property('data_source');",
+                  "    pm.expect(json).to.have.property('disclaimer');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Satellite Observation History for Farm",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms/{{farm_id}}/satellite/history?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms", "{{farm_id}}", "satellite", "history"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('History returns an array', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(Array.isArray(json)).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Expert Workbench",
+      "item": [
+        {
+          "name": "Digital Twin Scenario Simulation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": {\n    \"scenario_name\": \"Extreme Heat Stress (+3.5C)\",\n    \"updates\": {\n      \"Temperature\": 32.5,\n      \"Humidity\": 45.0,\n      \"WaterStress\": 0.65\n    }\n  },\n  \"context\": {\n    \"district\": \"Pune\",\n    \"crop\": \"Soybean\",\n    \"season\": \"Kharif\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/experts/simulate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "experts", "simulate"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Simulation outputs valid risk score', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('risk_score');",
+                  "    pm.expect(json.risk_score).to.be.at.least(0.0).and.at.most(1.0);",
+                  "    pm.expect(json).to.have.property('adjusted_features');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "SHAP Explainability Attribution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"district\": \"Pune\",\n  \"crop\": \"Soybean\",\n  \"season\": \"Kharif\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/experts/explain",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "experts", "explain"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('SHAP attributions returned with top features', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('top_features');",
+                  "    pm.expect(json.top_features.length).to.be.greaterThan(0);",
+                  "    pm.expect(json).to.have.property('summary');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Security & Negative Tests",
+      "item": [
+        {
+          "name": "Negative - Missing Authorization Header (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "me"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Negative - Invalid Bearer Token (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid.token.signature",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "me"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Negative - Invalid Farm Latitude (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Invalid Coords Farm\",\n  \"state\": \"Maharashtra\",\n  \"district\": \"Pune\",\n  \"latitude\": 195.0,\n  \"longitude\": 74.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 422 Unprocessable Entity or 401 Unauthorized', function () {",
+                  "    pm.expect([401, 422]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Negative - Non-Positive Area Hectares (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Negative Area Farm\",\n  \"state\": \"Maharashtra\",\n  \"district\": \"Pune\",\n  \"latitude\": 18.5,\n  \"longitude\": 74.0,\n  \"area_hectares\": -1.5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/farms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "farms"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 422 Unprocessable Entity or 401 Unauthorized', function () {",
+                  "    pm.expect([401, 422]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Negative - Attempt Role Escalation via PATCH /me (Role unchanged)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{farmer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"admin\",\n  \"full_name\": \"Escalation Attempter\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "me"]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Role remains farmer or request rejected (400/401/422)', function () {",
+                  "    if (pm.response.code === 200) {",
+                  "        var json = pm.response.json();",
+                  "        pm.expect(json.role).to.eql('farmer');",
+                  "    } else {",
+                  "        pm.expect([400, 401, 422]).to.include(pm.response.code);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

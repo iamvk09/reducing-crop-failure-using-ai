@@ -1,0 +1,130 @@
+name: Continuous Integration (CI)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-and-ml:
+    name: 🐍 Backend, ML & Security Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt -r requirements.txt
+
+      - name: 🔒 Run Security & Secret Scan
+        run: python scripts/security_check.py
+
+      - name: 🧪 Run Backend Test Suite (52 tests)
+        run: pytest backend/tests -v
+
+      - name: 🧠 Run Core ML Regression Suite (15 tests)
+        run: python -m unittest tests/test_live_system.py
+
+  frontend-farmer:
+    name: 🌾 Farmer Frontend (Tests & Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/farmer/package-lock.json
+
+      - name: Install Farmer Dependencies
+        run: npm --prefix apps/farmer install
+
+      - name: 🧪 Run Farmer Frontend Tests
+        run: node apps/farmer/test_farmer.js
+
+      - name: 🏗️ Run Farmer Next.js Production Build
+        run: npm --prefix apps/farmer run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://placeholder-dev.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key-for-ci-build"
+          NEXT_PUBLIC_API_URL: "http://127.0.0.1:8000"
+
+  frontend-expert:
+    name: 🔬 Expert Frontend (Tests & Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/expert/package-lock.json
+
+      - name: Install Expert Dependencies
+        run: npm --prefix apps/expert install
+
+      - name: 🧪 Run Expert Frontend Tests
+        run: node apps/expert/test_expert.js
+
+      - name: 🏗️ Run Expert Next.js Production Build
+        run: npm --prefix apps/expert run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://placeholder-dev.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key-for-ci-build"
+          NEXT_PUBLIC_API_URL: "http://127.0.0.1:8000"
+
+  api-smoke-newman:
+    name: 📬 API Smoke Test (Newman + FastAPI)
+    runs-on: ubuntu-latest
+    needs: [backend-and-ml]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Python Backend Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt -r requirements.txt
+
+      - name: 🚀 Run Newman API Smoke Test
+        run: python scripts/run_api_smoke_test.py

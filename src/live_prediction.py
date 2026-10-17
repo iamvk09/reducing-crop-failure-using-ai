@@ -31,10 +31,16 @@ DEFAULT_BUNDLE_PATH = _SLIM_BUNDLE_PATH if Path(_SLIM_BUNDLE_PATH).exists() else
 DEFAULT_DATASET_PATH = "data/district_dataset.csv"
 SPECIALIZED_DIR = Path("models/specialized")
 
+import threading
+
 # Module-level caches — populated once, never re-loaded on Streamlit reruns
 _CACHED_BUNDLE: Optional[dict] = None
 _CACHED_BASELINES: Optional[pd.DataFrame] = None
 _SPECIALIZED_CACHE: Dict[str, Any] = {}      # {prefix_name: model} – populated on first access
+_CACHED_EXPLAINER: Optional[Any] = None      # Fitted SHAP explainer instance reused across requests
+_CACHED_EXPLAINER_MODEL_NAME: Optional[str] = None
+_MODEL_INIT_LOCK = threading.Lock()          # Prevents duplicate unpickling under concurrent cold requests
+
 
 
 # ---------------------------------------------------------------------------
@@ -197,36 +203,40 @@ def load_model_bundle(bundle_path: str = DEFAULT_BUNDLE_PATH) -> dict:
     if _CACHED_BUNDLE is not None:
         return _CACHED_BUNDLE
 
-    try:
-        from src.memory_diagnostics import log_memory
-    except ModuleNotFoundError:
-        from memory_diagnostics import log_memory
+    with _MODEL_INIT_LOCK:
+        if _CACHED_BUNDLE is not None:
+            return _CACHED_BUNDLE
 
-    log_memory("Before bundle load")
-    path = Path(bundle_path)
-    if not path.exists():
-        path = Path(_FULL_BUNDLE_PATH)
+        try:
+            from src.memory_diagnostics import log_memory
+        except ModuleNotFoundError:
+            from memory_diagnostics import log_memory
+
+        log_memory("Before bundle load")
+        path = Path(bundle_path)
         if not path.exists():
-            raise FileNotFoundError(f"Model bundle not found at: {path.resolve()}")
+            path = Path(_FULL_BUNDLE_PATH)
+            if not path.exists():
+                raise FileNotFoundError(f"Model bundle not found at: {path.resolve()}")
 
-    bundle = joblib.load(str(path))
-    log_memory("After bundle load", f"bundle={path.name}")
+        bundle = joblib.load(str(path))
+        log_memory("After bundle load", f"bundle={path.name}")
 
-    required_keys = ["failure_models", "best_failure_model_name", "failure_features"]
-    missing_keys = [k for k in required_keys if k not in bundle]
-    if missing_keys:
-        raise KeyError(f"Bundle missing required keys: {missing_keys}")
+        required_keys = ["failure_models", "best_failure_model_name", "failure_features"]
+        missing_keys = [k for k in required_keys if k not in bundle]
+        if missing_keys:
+            raise KeyError(f"Bundle missing required keys: {missing_keys}")
 
-    # Inject lazy specialized model dictionaries if specialized/ directory exists
-    if "region_models" not in bundle or not bundle["region_models"]:
-        region_keys = _discover_specialized_keys("region")
-        bundle["region_models"] = _LazyModelDict("region", region_keys)
-    if "crop_models" not in bundle or not bundle["crop_models"]:
-        crop_keys = _discover_specialized_keys("crop")
-        bundle["crop_models"] = _LazyModelDict("crop", crop_keys)
+        # Inject lazy specialized model dictionaries if specialized/ directory exists
+        if "region_models" not in bundle or not bundle["region_models"]:
+            region_keys = _discover_specialized_keys("region")
+            bundle["region_models"] = _LazyModelDict("region", region_keys)
+        if "crop_models" not in bundle or not bundle["crop_models"]:
+            crop_keys = _discover_specialized_keys("crop")
+            bundle["crop_models"] = _LazyModelDict("crop", crop_keys)
 
-    _CACHED_BUNDLE = bundle
-    return _CACHED_BUNDLE
+        _CACHED_BUNDLE = bundle
+        return _CACHED_BUNDLE
 
 
 # ---------------------------------------------------------------------------
@@ -239,23 +249,27 @@ def _load_baseline_data(dataset_path: str = DEFAULT_DATASET_PATH) -> pd.DataFram
     if _CACHED_BASELINES is not None:
         return _CACHED_BASELINES
 
-    path = Path(dataset_path)
-    if not path.exists():
-        raise FileNotFoundError(f"District dataset not found at: {path.resolve()}")
+    with _MODEL_INIT_LOCK:
+        if _CACHED_BASELINES is not None:
+            return _CACHED_BASELINES
 
-    # Read only the columns needed for baseline lookup and SHAP background samples.
-    # Year must be included because it is a failure model feature.
-    needed_cols = [
-        "Year", "District", "State", "Region", "Latitude", "Longitude",
-        "Crop", "Season", "SoilType", "IrrigationLevel",
-        "Rainfall", "Temperature", "Humidity", "SoilMoisture",
-        "NDVI_Flowering", "WaterStress", "PestRisk", "SuitabilityScore", "YieldIndex",
-    ]
-    available_cols = pd.read_csv(str(path), nrows=0).columns.tolist()
-    cols_to_read = [c for c in needed_cols if c in available_cols]
-    df = pd.read_csv(str(path), usecols=cols_to_read)
-    _CACHED_BASELINES = df
-    return _CACHED_BASELINES
+        path = Path(dataset_path)
+        if not path.exists():
+            raise FileNotFoundError(f"District dataset not found at: {path.resolve()}")
+
+        # Read only the columns needed for baseline lookup and SHAP background samples.
+        # Year must be included because it is a failure model feature.
+        needed_cols = [
+            "Year", "District", "State", "Region", "Latitude", "Longitude",
+            "Crop", "Season", "SoilType", "IrrigationLevel",
+            "Rainfall", "Temperature", "Humidity", "SoilMoisture",
+            "NDVI_Flowering", "WaterStress", "PestRisk", "SuitabilityScore", "YieldIndex",
+        ]
+        available_cols = pd.read_csv(str(path), nrows=0).columns.tolist()
+        cols_to_read = [c for c in needed_cols if c in available_cols]
+        df = pd.read_csv(str(path), usecols=cols_to_read)
+        _CACHED_BASELINES = df
+        return _CACHED_BASELINES
 
 
 # ---------------------------------------------------------------------------
@@ -583,19 +597,40 @@ def get_prediction_explanation(
     if hasattr(bg_trans, "toarray"):
         bg_trans = bg_trans.toarray()
 
+    # Explainer caching: reuse fitted explainer instance to avoid recomputing background statistics
+    global _CACHED_EXPLAINER, _CACHED_EXPLAINER_MODEL_NAME
     feature_names = preprocessor.get_feature_names_out()
     shap_values_row = None
     explainer_type = "LinearExplainer"
 
+    expected_value = 0.0
     try:
-        if hasattr(estimator, "coef_"):
+        if _CACHED_EXPLAINER is not None and _CACHED_EXPLAINER_MODEL_NAME == best_model_name:
+            explainer = _CACHED_EXPLAINER
+            explainer_type = getattr(explainer, "__class__", type(explainer)).__name__
+            shap_vals = explainer.shap_values(row_trans)
+            if isinstance(shap_vals, list):
+                shap_values_row = shap_vals[1][0] if len(shap_vals) > 1 else shap_vals[0]
+            elif getattr(shap_vals, "ndim", 1) > 1:
+                shap_values_row = shap_vals[0]
+            else:
+                shap_values_row = shap_vals
+            if hasattr(explainer, "expected_value"):
+                expected_value = explainer.expected_value
+        elif hasattr(estimator, "coef_"):
             explainer_type = "LinearExplainer"
             explainer = shap.LinearExplainer(estimator, bg_trans)
+            _CACHED_EXPLAINER = explainer
+            _CACHED_EXPLAINER_MODEL_NAME = best_model_name
             shap_vals = explainer.shap_values(row_trans)
             shap_values_row = shap_vals[0] if getattr(shap_vals, "ndim", 1) > 1 else shap_vals
+            if hasattr(explainer, "expected_value"):
+                expected_value = explainer.expected_value
         elif hasattr(estimator, "feature_importances_"):
             explainer_type = "TreeExplainer"
             explainer = shap.TreeExplainer(estimator)
+            _CACHED_EXPLAINER = explainer
+            _CACHED_EXPLAINER_MODEL_NAME = best_model_name
             shap_vals = explainer.shap_values(row_trans)
             if isinstance(shap_vals, list):
                 shap_values_row = shap_vals[1][0]
@@ -603,16 +638,22 @@ def get_prediction_explanation(
                 shap_values_row = shap_vals[0, :, 1]
             else:
                 shap_values_row = shap_vals[0]
+            if hasattr(explainer, "expected_value"):
+                expected_value = explainer.expected_value
         else:
             explainer_type = "Explainer"
             explainer = shap.Explainer(estimator, bg_trans)
             shap_vals = explainer(row_trans)
             shap_values_row = shap_vals.values[0]
+            if hasattr(explainer, "expected_value"):
+                expected_value = explainer.expected_value
     except Exception:
         if hasattr(estimator, "coef_"):
             explainer_type = "LinearAttribution (Fallback)"
             diff = row_trans[0] - bg_trans.mean(axis=0)
             shap_values_row = estimator.coef_[0] * diff
+            if hasattr(estimator, "intercept_"):
+                expected_value = float(estimator.intercept_[0])
         elif hasattr(estimator, "feature_importances_"):
             explainer_type = "FeatureImportance (Fallback)"
             shap_values_row = estimator.feature_importances_
@@ -644,6 +685,26 @@ def get_prediction_explanation(
     items.sort(key=lambda x: x["abs_impact"], reverse=True)
     top_items = items[:8]
 
+    # Map transformed contributions back to the 16 original failure features
+    aggregated_attributions = {feat: 0.0 for feat in failure_features}
+    for raw, impact in zip(feature_names, shap_values_row):
+        if raw.startswith("num__"):
+            base_feat = raw.replace("num__", "")
+        elif raw.startswith("cat__"):
+            base_feat = raw.split("__")[1].split("_")[0]
+        else:
+            base_feat = raw
+        if base_feat in aggregated_attributions:
+            aggregated_attributions[base_feat] += float(impact)
+        else:
+            aggregated_attributions[base_feat] = float(impact)
+
+    # Round aggregated attributions for numerical precision
+    aggregated_attributions = {k: round(v, 4) for k, v in aggregated_attributions.items()}
+
+    exp_val_float = float(expected_value[0]) if isinstance(expected_value, (list, np.ndarray)) else float(expected_value)
+    total_shap_val = float(np.sum(shap_values_row)) if shap_values_row is not None else 0.0
+
     increasing = [i["display_name"] for i in top_items if i["direction"] == "Increases Risk"][:3]
     decreasing = [i["display_name"] for i in top_items if i["direction"] == "Decreases Risk"][:2]
 
@@ -655,6 +716,11 @@ def get_prediction_explanation(
 
     return {
         "explainer_type": explainer_type,
+        "output_space": "log_odds",
+        "base_value": round(exp_val_float, 4),
+        "sum_shap": round(total_shap_val, 4),
+        "margin_value": round(exp_val_float + total_shap_val, 4),
         "top_features": top_items,
+        "feature_attributions": aggregated_attributions,
         "summary": " ".join(parts) if parts else "Features are balanced near regional average.",
     }
