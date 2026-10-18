@@ -64,8 +64,21 @@ async def security_and_correlation_headers_middleware(request: Request, call_nex
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    # Modern APIs use CSP frame-ancestors rather than legacy X-XSS-Protection
-    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    # Modern APIs use CSP frame-ancestors rather than legacy X-XSS-Protection.
+    # Documentation interfaces (/docs, /redoc) require CDN bundles, fonts, and inline styles.
+    # All other API routes strictly enforce default-src 'none'.
+    path = request.url.path.rstrip("/")
+    if path in ("/docs", "/redoc"):
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https://fastapi.tiangolo.com; "
+            "frame-ancestors 'none'"
+        )
+    else:
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
     return response
 
 
