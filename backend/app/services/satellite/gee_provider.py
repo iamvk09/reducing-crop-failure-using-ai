@@ -90,9 +90,22 @@ class GoogleEarthEngineProvider(SatelliteProvider):
         try:
             # Initialize with service account credentials or project
             if has_sa and has_pk:
+                cleaned_pk = private_key.strip()
+                # If the private key was provided as a full JSON service account string
+                if cleaned_pk.startswith("{") and cleaned_pk.endswith("}"):
+                    try:
+                        import json
+                        sa_data = json.loads(cleaned_pk)
+                        cleaned_pk = sa_data.get("private_key", cleaned_pk).strip()
+                    except Exception:
+                        pass
+                # If newlines were escaped as literal \n in dashboard environment variables
+                if "\\n" in cleaned_pk and "\n" not in cleaned_pk:
+                    cleaned_pk = cleaned_pk.replace("\\n", "\n")
+
                 credentials = self._ee.ServiceAccountCredentials(
                     service_account.strip(),
-                    key_data=private_key.strip(),
+                    key_data=cleaned_pk,
                 )
                 self._ee.Initialize(credentials, project=project_id.strip() if has_proj else None)
             elif has_proj:

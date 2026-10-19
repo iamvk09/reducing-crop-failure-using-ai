@@ -238,6 +238,77 @@ def validate_prediction_input(
 # Lazy specialized model loading
 # ---------------------------------------------------------------------------
 
+def _patch_imputer_attributes(estimator: Any, seen: Optional[set] = None) -> None:
+    """Ensure SimpleImputer instances have _fill_dtype and _fit_dtype for forward compatibility across scikit-learn versions.
+
+    Recursively traverses Pipelines, ColumnTransformers, and ensemble estimators while guarding
+    against cyclic object references and safely ignoring passthrough/drop transformers.
+    """
+    if estimator is None or isinstance(estimator, str):
+        return
+
+    if seen is None:
+        seen = set()
+
+    obj_id = id(estimator)
+    if obj_id in seen:
+        return
+    seen.add(obj_id)
+
+    # 1. Pipeline traversal (steps or named_steps)
+    if hasattr(estimator, "steps") and isinstance(estimator.steps, (list, tuple)):
+        for step_tuple in estimator.steps:
+            if isinstance(step_tuple, (list, tuple)) and len(step_tuple) >= 2:
+                _patch_imputer_attributes(step_tuple[1], seen)
+    elif hasattr(estimator, "named_steps") and isinstance(estimator.named_steps, dict):
+        for step in estimator.named_steps.values():
+            _patch_imputer_attributes(step, seen)
+
+    # 2. ColumnTransformer traversal (transformers_ and transformers)
+    if hasattr(estimator, "transformers_") and isinstance(estimator.transformers_, (list, tuple)):
+        for item in estimator.transformers_:
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                _patch_imputer_attributes(item[1], seen)
+    if hasattr(estimator, "transformers") and isinstance(estimator.transformers, (list, tuple)):
+        for item in estimator.transformers:
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                _patch_imputer_attributes(item[1], seen)
+    if hasattr(estimator, "named_transformers_") and isinstance(estimator.named_transformers_, dict):
+        for trans in estimator.named_transformers_.values():
+            _patch_imputer_attributes(trans, seen)
+
+    # 3. Meta-estimators (CalibratedClassifierCV, VotingClassifier, etc.)
+    if hasattr(estimator, "calibrated_classifiers_") and isinstance(estimator.calibrated_classifiers_, (list, tuple)):
+        for cc in estimator.calibrated_classifiers_:
+            base = getattr(cc, "base_estimator", None) or getattr(cc, "estimator", None)
+            if base is not None:
+                _patch_imputer_attributes(base, seen)
+    if hasattr(estimator, "estimators_") and isinstance(estimator.estimators_, (list, tuple)):
+        for sub_est in estimator.estimators_:
+            _patch_imputer_attributes(sub_est, seen)
+
+    # 4. Target SimpleImputer instance patching
+    if estimator.__class__.__name__ == "SimpleImputer":
+        # Resolve fitted dtype strictly from fitted attributes if available
+        fit_dtype = getattr(estimator, "_fit_dtype", None)
+        stat = getattr(estimator, "statistics_", None)
+        stat_dtype = getattr(stat, "dtype", None) if stat is not None else None
+
+        resolved_dtype = None
+        if fit_dtype is not None:
+            resolved_dtype = fit_dtype
+        elif stat_dtype is not None:
+            # If fitted on strings/categories, scikit-learn uses object or unicode array
+            resolved_dtype = stat_dtype if stat_dtype != np.dtype("O") else object
+
+        # Set _fill_dtype only when a valid fitted dtype can be determined and attribute is missing
+        if resolved_dtype is not None:
+            if not hasattr(estimator, "_fill_dtype"):
+                estimator._fill_dtype = resolved_dtype
+            if not hasattr(estimator, "_fit_dtype"):
+                estimator._fit_dtype = resolved_dtype
+
+
 class _LazyModelDict:
     """Dict-like container that loads specialized models on first access only.
 
@@ -268,7 +339,9 @@ class _LazyModelDict:
                     f"Specialized model not found: {path}. "
                     "Re-run the training pipeline to regenerate specialized models."
                 )
-            _SPECIALIZED_CACHE[cache_key] = joblib.load(str(path))
+            loaded_model = joblib.load(str(path))
+            _patch_imputer_attributes(loaded_model)
+            _SPECIALIZED_CACHE[cache_key] = loaded_model
         return _SPECIALIZED_CACHE[cache_key]
 
 
@@ -329,6 +402,11 @@ def load_model_bundle(bundle_path: str = DEFAULT_BUNDLE_PATH) -> dict:
         if "crop_models" not in bundle or not bundle["crop_models"]:
             crop_keys = _discover_specialized_keys("crop")
             bundle["crop_models"] = _LazyModelDict("crop", crop_keys)
+
+        # Ensure all models in bundle have _fill_dtype attribute for imputer compatibility
+        for m in bundle.get("failure_models", {}).values():
+            _patch_imputer_attributes(m)
+        _patch_imputer_attributes(bundle.get("crop_recommendation_model"))
 
         _CACHED_BUNDLE = bundle
         return _CACHED_BUNDLE

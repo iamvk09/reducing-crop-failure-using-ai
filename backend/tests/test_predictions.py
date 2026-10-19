@@ -657,3 +657,164 @@ def test_prediction_history_user_isolation(client: TestClient, farmer1_token: st
     assert hist2.status_code == 200
     assert isinstance(hist2.json(), list)
     assert len(hist2.json()) == 0
+
+
+def test_predict_for_farm_unexpected_error_logging(client: TestClient, farmer1_token: str):
+    """Ensure unexpected exceptions in prediction execution log diagnostics and return generic HTTP 500."""
+    from backend.app.main import app
+    from backend.app.api.deps import get_prediction_svc
+    from unittest.mock import MagicMock
+
+    farm_id, crop_id = create_test_farm_and_crop(client, farmer1_token)
+
+    mock_svc = MagicMock()
+    mock_svc.predict_for_farm.side_effect = RuntimeError("Simulated internal ML runtime failure")
+    app.dependency_overrides[get_prediction_svc] = lambda: mock_svc
+
+    try:
+        res = client.post(
+            f"/api/v1/farms/{farm_id}/predictions",
+            headers=auth_headers(farmer1_token),
+            json={},
+        )
+        assert res.status_code == 500
+        assert "Failed to generate crop failure prediction" in res.json()["detail"] or "internal error" in res.json()["detail"]
+    finally:
+        app.dependency_overrides.pop(get_prediction_svc, None)
+
+
+def test_predict_for_farm_succeeds_even_when_alert_evaluation_fails(client: TestClient, farmer1_token: str):
+    """Ensure that failure in alert evaluation does NOT block the prediction response."""
+    farm_id, crop_id = create_test_farm_and_crop(client, farmer1_token)
+
+    with patch("backend.app.services.alert_service.AlertService.evaluate_alert_conditions", side_effect=Exception("PGRST205: Could not find table 'farm_alerts'")):
+        res = client.post(
+            f"/api/v1/farms/{farm_id}/predictions",
+            headers=auth_headers(farmer1_token),
+            json={},
+        )
+        assert res.status_code == 201
+        data = res.json()
+        assert data["risk_probability"] is not None
+        assert data["risk_level"] in ("Low", "Medium", "High")
+
+
+def test_imputer_forward_compatibility_and_prediction_transformation():
+    """Regression test: verify SimpleImputer transformation and prediction path under scikit-learn version differences.
+
+    Guarantees that models loaded with or without `_fill_dtype` (introduced in newer scikit-learn versions)
+    transform features cleanly without throwing AttributeError: 'SimpleImputer' object has no attribute '_fill_dtype'.
+    """
+    from src.live_prediction import load_model_bundle, predict_new_case, _patch_imputer_attributes
+    import pandas as pd
+
+    bundle = load_model_bundle()
+    best_model_name = bundle["best_failure_model_name"]
+    model = bundle["failure_models"][best_model_name]
+
+    # Verify that the model pipeline contains imputers and they have been patched
+    assert hasattr(model, "named_steps"), "Pipeline must have named_steps"
+    preprocessor = model.named_steps["preprocessor"]
+    num_imputer = preprocessor.named_transformers_["num"].named_steps["imputer"]
+    cat_imputer = preprocessor.named_transformers_["cat"].named_steps["imputer"]
+
+    assert hasattr(num_imputer, "_fill_dtype"), "num_imputer must have _fill_dtype set"
+    assert hasattr(cat_imputer, "_fill_dtype"), "cat_imputer must have _fill_dtype set"
+
+    # Simulate unpickling an object without _fill_dtype, and ensure _patch_imputer_attributes restores it
+    if hasattr(num_imputer, "_fill_dtype"):
+        delattr(num_imputer, "_fill_dtype")
+    assert not hasattr(num_imputer, "_fill_dtype")
+    _patch_imputer_attributes(model)
+    assert hasattr(num_imputer, "_fill_dtype"), "Patch function must restore _fill_dtype"
+
+    # Execute full prediction transformation
+    test_features = {
+        "State": "Maharashtra",
+        "Region": "Western Plateau",
+        "Season": "Kharif",
+        "Crop": "Soybean",
+        "SoilType": "Black",
+        "IrrigationLevel": "Medium",
+        "Year": 2026,
+        "Rainfall": 750.0,
+        "Temperature": 28.5,
+        "Humidity": 68.0,
+        "SoilMoisture": 32.0,
+        "NDVI_Flowering": 0.58,
+        "WaterStress": 0.22,
+        "PestRisk": 0.15,
+        "SuitabilityScore": 0.85,
+        "YieldIndex": 1.05,
+    }
+    result = predict_new_case(test_features)
+    assert "risk_probability" in result
+    assert "risk_level" in result
+    assert result["risk_level"] in ("Low", "Medium", "High")
+    assert 0.0 <= result["risk_probability"] <= 1.0
+
+
+def test_nested_imputer_traversal_cycle_safety_and_dtype_preservation():
+    """Verify that _patch_imputer_attributes handles nested structures, circular references, and derives exact fitted dtypes."""
+    import numpy as np
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+    from src.live_prediction import _patch_imputer_attributes
+
+    # 1. Construct a nested ColumnTransformer inside a Pipeline
+    num_imp = SimpleImputer(strategy="median")
+    cat_imp = SimpleImputer(strategy="most_frequent")
+
+    # Fit them on dummy data
+    X_num = np.array([[1.0, 2.0], [np.nan, 4.0], [5.0, 6.0]], dtype=np.float64)
+    X_cat = np.array([["apple", "low"], ["banana", "high"], [None, "medium"]], dtype=object)
+    num_imp.fit(X_num)
+    cat_imp.fit(X_cat)
+
+    col_trans = ColumnTransformer(
+        transformers=[
+            ("num", Pipeline([("imp", num_imp), ("scaler", StandardScaler())]), [0, 1]),
+            ("cat", Pipeline([("imp", cat_imp)]), [2, 3]),
+            ("pass", "passthrough", [4]),  # Passthrough string check
+        ]
+    )
+
+    outer_pipe = Pipeline([("preprocessor", col_trans)])
+
+    # Delete _fill_dtype and _fit_dtype to simulate loading unpatched older model artifacts
+    if hasattr(num_imp, "_fill_dtype"):
+        delattr(num_imp, "_fill_dtype")
+    if hasattr(num_imp, "_fit_dtype"):
+        delattr(num_imp, "_fit_dtype")
+    if hasattr(cat_imp, "_fill_dtype"):
+        delattr(cat_imp, "_fill_dtype")
+    if hasattr(cat_imp, "_fit_dtype"):
+        delattr(cat_imp, "_fit_dtype")
+
+    assert not hasattr(num_imp, "_fill_dtype")
+    assert not hasattr(cat_imp, "_fill_dtype")
+
+    # 2. Add an intentional circular reference to verify recursion safety
+    outer_pipe.circular_ref = outer_pipe
+
+    # 3. Apply patch
+    _patch_imputer_attributes(outer_pipe)
+
+    # 4. Verify exact fitted dtypes are restored
+    assert hasattr(num_imp, "_fill_dtype")
+    assert hasattr(num_imp, "_fit_dtype")
+    assert num_imp._fill_dtype == np.dtype("float64")
+    assert num_imp._fit_dtype == np.dtype("float64")
+
+    assert hasattr(cat_imp, "_fill_dtype")
+    assert hasattr(cat_imp, "_fit_dtype")
+    assert cat_imp._fill_dtype == object
+    assert cat_imp._fit_dtype == object
+
+    # 5. Verify transform succeeds without AttributeError: 'SimpleImputer' object has no attribute '_fill_dtype'
+    X_test_num = np.array([[np.nan, 2.0], [3.0, np.nan]], dtype=np.float64)
+    res_num = num_imp.transform(X_test_num)
+    assert res_num.shape == (2, 2)
+    assert not np.isnan(res_num).any()
