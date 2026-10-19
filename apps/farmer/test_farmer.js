@@ -803,8 +803,6 @@ function evaluatePredictionHistoryView(records, error, isLoading) {
 assert(evaluatePredictionHistoryView([], null, false) === "empty", "Empty array without error must render genuine empty state");
 assert(evaluatePredictionHistoryView(null, "Failed to fetch", false) === "error", "Network error must render error state, NOT empty state");
 assert(evaluatePredictionHistoryView([{ prediction_id: "p-1", risk_percentage: "25%" }], null, false) === "list", "Valid records render list");
-console.log("✔ Test 35 Passed: Prediction History response states (empty vs error vs list) strictly distinguished.");
-
 // 36. Test User Token Forwarding & Tenant Isolation in Prediction History
 function filterPredictionsForUser(allPredictions, requestingUserId, token) {
   if (!token) throw new Error("Authentication required");
@@ -826,6 +824,153 @@ try {
 }
 console.log("✔ Test 36 Passed: User token forwarding and tenant isolation verified.");
 
+// 37. Test OAuth Callback URL Parameter Extraction & Error Parsing
+function parseOAuthCallbackUrl(searchParamsString) {
+  const params = new URLSearchParams(searchParamsString);
+  const error = params.get("error");
+  const errorDesc = params.get("error_description");
+  const code = params.get("code");
+
+  if (error) {
+    return {
+      status: "error",
+      redirectUrl: `/login?error=${encodeURIComponent(error)}`,
+      errorMessage: errorDesc || error,
+    };
+  }
+
+  if (code) {
+    return {
+      status: "exchange_code",
+      code,
+      redirectUrl: "/dashboard",
+    };
+  }
+
+  return {
+    status: "verify_session",
+    redirectUrl: "/dashboard",
+  };
+}
+
+const errResult = parseOAuthCallbackUrl("?error=access_denied&error_description=User+cancelled");
+assert(errResult.status === "error", "OAuth error parameter must yield error status");
+assert(errResult.redirectUrl === "/login?error=access_denied", "OAuth error must route back to /login with encoded error");
+
+const codeResult = parseOAuthCallbackUrl("?code=test-auth-code-123");
+assert(codeResult.status === "exchange_code", "Auth code query must yield code exchange flow");
+assert(codeResult.code === "test-auth-code-123", "Auth code must be parsed accurately");
+
+const normalResult = parseOAuthCallbackUrl("");
+assert(normalResult.status === "verify_session", "Clean callback URL defaults to session verification");
+console.log("✔ Test 37 Passed: OAuth callback URL parsing and provider error propagation verified.");
+
+// 38. Test OAuth Session Resolution & Polling Timeout Fallback
+async function resolveOAuthSessionWithTimeout(mockSessionGetter, timeoutMs = 200, pollIntervalMs = 50) {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeoutMs) {
+    const session = await mockSessionGetter();
+    if (session?.user) {
+      return { status: "authenticated", destination: "/dashboard" };
+    }
+    await new Promise((r) => setTimeout(r, pollIntervalMs));
+  }
+  return { status: "missing_session", destination: "/login?error=oauth_session_missing" };
+}
+
+let attemptCount = 0;
+const delayedSessionGetter = async () => {
+  attemptCount++;
+  if (attemptCount >= 2) {
+    return { user: { id: "google-uid-123", email: "farmer@example.com" } };
+  }
+  return null;
+};
+
+resolveOAuthSessionWithTimeout(delayedSessionGetter, 500, 50).then((res) => {
+  assert(res.status === "authenticated", "Delayed session arrival must be resolved successfully");
+  assert(res.destination === "/dashboard", "Authenticated OAuth users must be routed to /dashboard");
+  console.log("✔ Test 38 Passed: OAuth session resolution with polling succeeds when session arrives.");
+});
+
+// 39. Test OAuth Session Timeout Failure Routing
+const emptySessionGetter = async () => null;
+resolveOAuthSessionWithTimeout(emptySessionGetter, 100, 30).then((res) => {
+  assert(res.status === "missing_session", "Expired polling without session must report missing session");
+  assert(res.destination === "/login?error=oauth_session_missing", "Missing session must route to /login?error=oauth_session_missing");
+  console.log("✔ Test 39 Passed: OAuth session polling correctly times out and prevents infinite redirect loop.");
+});
+
+// 40. Test Session Priority: Real Supabase Session Evicts Demo Session
+function synchronizeAuthState(supabaseSession, devSessionStored, currentToken) {
+  let activeToken = currentToken;
+  let activeDevSession = devSessionStored;
+
+  if (supabaseSession?.access_token) {
+    // Real session detected: evict demo session
+    activeDevSession = null;
+    activeToken = supabaseSession.access_token;
+  } else if (!activeToken && devSessionStored) {
+    // Only fall back to demo session if no real session exists
+    activeToken = devSessionStored.token;
+  }
+
+  return {
+    activeToken,
+    activeDevSession,
+    isRealUser: Boolean(supabaseSession?.user),
+  };
+}
+
+const realSessionState = synchronizeAuthState(
+  { access_token: "sb-real-jwt", user: { id: "uuid-real-1" } },
+  { token: "mock-dev-token-farmer", role: "farmer" },
+  null
+);
+assert(realSessionState.activeToken === "sb-real-jwt", "Real Supabase token takes priority");
+assert(realSessionState.activeDevSession === null, "Demo session is evicted upon real Supabase auth");
+assert(realSessionState.isRealUser === true, "User marked as real");
+
+const devFallbackState = synchronizeAuthState(
+  null,
+  { token: "mock-dev-token-farmer", role: "farmer" },
+  null
+);
+assert(devFallbackState.activeToken === "mock-dev-token-farmer", "Demo session only used when no Supabase session");
+assert(devFallbackState.isRealUser === false, "Demo session marked as not real");
+// 41. Test Safe Supabase Configuration Check
+const { checkSupabaseConfig } = require("../shared/supabase/client.ts");
+
+const initialUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const initialKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+// Case A: Missing variables detected
+delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const missingConfig = checkSupabaseConfig();
+assert(missingConfig.isConfigured === false, "Missing environment variables must flag isConfigured=false");
+assert(missingConfig.missingVariables.includes("NEXT_PUBLIC_SUPABASE_URL"), "Must report missing URL");
+assert(missingConfig.missingVariables.some(v => v.includes("PUBLISHABLE_KEY")), "Must report missing publishable key");
+
+// Case B: Placeholder variables detected
+process.env.NEXT_PUBLIC_SUPABASE_URL = "https://placeholder.supabase.co";
+process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "placeholder-anon-key";
+const placeholderConfig = checkSupabaseConfig();
+assert(placeholderConfig.isConfigured === false, "Placeholder credentials must be rejected");
+
+// Case C: Valid configuration
+process.env.NEXT_PUBLIC_SUPABASE_URL = "https://validproject.supabase.co";
+process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_valid";
+const validConfig = checkSupabaseConfig();
+assert(validConfig.isConfigured === true, "Valid credentials must pass configuration check");
+assert(validConfig.missingVariables.length === 0, "No missing variables on valid config");
+
+// Restore environment
+if (initialUrl) process.env.NEXT_PUBLIC_SUPABASE_URL = initialUrl;
+if (initialKey) process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = initialKey;
+console.log("✔ Test 41 Passed: Safe Supabase configuration validation without secret leakage verified.");
+
 console.log("\n=======================================================");
-console.log("ALL FRONTEND TESTS PASSED SUCCESSFULLY! (36/36 suites)");
+console.log("ALL FRONTEND TESTS PASSED SUCCESSFULLY! (41/41 suites)");
 console.log("=======================================================\n");

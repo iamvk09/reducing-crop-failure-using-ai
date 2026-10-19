@@ -276,7 +276,12 @@ export default function ExpertWorkbenchView({
           return null;
         }),
         getEvaluationReadiness(token).catch((err) => {
-          setReadinessError(err.message || "Failed to load evaluation readiness checklist.");
+          const msg = err.message || "";
+          if (msg.includes("403") || msg.toLowerCase().includes("not permitted") || msg.toLowerCase().includes("forbidden")) {
+            setReadinessError("Evaluation diagnostics and verification queues require an authorized Expert or Admin role.");
+          } else {
+            setReadinessError(msg || "Failed to load evaluation readiness checklist.");
+          }
           return null;
         }),
       ]);
@@ -1352,6 +1357,18 @@ export default function ExpertWorkbenchView({
               Evaluate real-world prediction accuracy against verified post-harvest crop outcomes.
             </p>
           </div>
+
+          {readinessError && (
+            <div className="p-4 bg-sky-950/40 border border-sky-800/60 rounded-xl flex items-start gap-3 text-xs text-sky-200">
+              <span className="text-base">ℹ️</span>
+              <div className="space-y-1">
+                <p className="font-semibold">{readinessError}</p>
+                <p className="text-sky-300/80 text-[11px]">
+                  Under the unified single sign-on model, all workbench views are accessible. Operational diagnostic queues and outcome verification actions remain restricted to agronomic expert accounts.
+                </p>
+              </div>
+            </div>
+          )}
 
           {evalReport && evalReport.metrics ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-[#131d2b] p-5 rounded-2xl border border-sky-900/60">
