@@ -1,532 +1,424 @@
-# AI Crop Failure Project: Reducing Crop Failure Using AI Under Unfavorable Weather Conditions
+# CropAI: Reducing Crop Failure Using AI Under Unfavourable Weather Conditions
 
-An AI-driven decision-support platform designed to assist farmers, agricultural extension officers, agronomists, and researchers in estimating crop failure risks, exploring climate-resilient crop alternatives, and simulating agricultural stress scenarios.
+An enterprise-grade, multi-tenant agricultural intelligence platform designed to assist smallholder farmers, agricultural extension officers, agronomists, and researchers in estimating crop failure risks, exploring climate-resilient crop alternatives, and monitoring farm-level environmental stress.
 
 ---
 
-## 📌 Executive Summary & Architecture (Version 1 vs. Version 2)
+## 🌐 Application Links & Deployment Status
 
-### Existing Version 1 (Preserved & Live)
-- **Live Streamlit Application**: [https://reducecropfailure.onrender.com/](https://reducecropfailure.onrender.com/)
-- **Nature**: Python/Streamlit prototype combining historical district baseline datasets, scikit-learn models (`models/agri_ai_bundle.pkl`), and live Open-Meteo weather forecasting.
-- **Isolation Guarantee**: Version 1 is deployed independently on Render and **must remain untouched**. Version 2 development and staging operate on separate branches and staging targets without impacting Version 1.
+| Service | Environment | Deployment URL | Operational Status |
+| :--- | :--- | :--- | :--- |
+| **V2 Web Application (Next.js)** | Production / Staging | [reducing-crop-failure-using-ai.vercel.app](https://reducing-crop-failure-using-ai.vercel.app) | **Live** (Hosted on Vercel) |
+| **V2 Backend API (FastAPI)** | Staging | [cropai-backend-staging.onrender.com](https://cropai-backend-staging.onrender.com) | **Live — Staging** (Hosted on Render) |
+| **Backend Health Check** | Staging | [cropai-backend-staging.onrender.com/health](https://cropai-backend-staging.onrender.com/health) | **Operational** (`HTTP 200: {"status":"ok"}`) |
+| **Interactive API Docs (Swagger)** | Staging | [cropai-backend-staging.onrender.com/docs](https://cropai-backend-staging.onrender.com/docs) | **Live** (OpenAPI / Swagger UI) |
+| **Source Code Repository** | Production | [github.com/iamvk09/reducing-crop-failure-using-ai](https://github.com/iamvk09/reducing-crop-failure-using-ai) | **Active** (Branch: `release/v2-staging`) |
+| **V1 Prototype (Streamlit)** | Legacy Live | [reducecropfailure.onrender.com](https://reducecropfailure.onrender.com/) | **Preserved** (Independent V1 service) |
 
-### Version 2 Architecture (Current Staging Target)
-Version 2 evolves the platform into a decoupled, multi-tenant web application:
-1. **Frontend**: Next.js 14 App Router workspaces (`apps/farmer` for smallholders and `apps/expert` for agricultural researchers/agronomists) backed by a shared UI/API component library (`apps/shared`).
-2. **Backend**: FastAPI RESTful backend service (`backend/app/`) with JWT authentication, tenant isolation, Row-Level Security (RLS), and rate limiting.
-3. **Database & Auth**: Supabase PostgreSQL with 12 forward migrations, PostgREST APIs, and role-based access control (`farmer`, `expert`, `admin`).
-4. **Data & AI Pipelines**:
-   - 16-feature stage-aware Feature Assembler.
-   - Dual ML engine: Gradient Boosted / Random Forest risk estimator + Neuro-Fuzzy inference system (`models/neuro_fuzzy_model.json`).
-   - SHAP explanation engine (`LinearExplainer` and `TreeExplainer`).
-   - Open-Meteo live weather client with coordinate boundary validation and caching.
-   - Google Earth Engine / Sentinel-2 L2A satellite vegetation provider (NDVI statistics from polygon geometry with synthetic fallback).
-   - Early warning alert engine (`farm_alerts`) with stateful lifecycle management (active, acknowledged, resolved).
-   - Ground-truth outcome collection and model evaluation readiness engine.
+> [!NOTE]
+> The backend URL is actively hosted on a **Render Staging Web Service** (`cropai-backend-staging.onrender.com`) running Python 3.12 via Uvicorn. The V1 Streamlit prototype operates on an isolated Render instance and is preserved independently.
+
+---
+
+## 📖 Overview & Problem Statement
+
+Unfavourable weather conditions—including delayed monsoons, unseasonal downpours, dry spells, and temperature extremes—cause catastrophic yield reductions across India. Farmers often lack accessible, location-specific forecasts and scientific risk estimates prior to harvest failure.
+
+**CropAI V2** bridges this gap by unifying:
+1. **Cadastral Farm Boundaries**: Polygon GeoJSON cadastral mapping for registered farmer plots.
+2. **Real-Time Meteorological Telemetry**: Free, keyless 2m dry-bulb temperature, relative humidity, multi-layer root-zone soil moisture, and accumulated precipitation from Open-Meteo.
+3. **Orbital Vegetation Monitoring**: 10-meter native optical Sentinel-2 Level-2A Surface Reflectance (`COPERNICUS/S2_SR_HARMONIZED`) through Google Earth Engine (GEE).
+4. **Machine Learning & Neuro-Fuzzy Risk Engine**: Dual inference model producing calibrated failure probabilities and explainable SHAP attributions.
+5. **Grounded Multilingual Voice Assistant**: Zero-hallucination voice assistant supporting 8 Indian languages (Hindi, Marathi, Bengali, Telugu, Tamil, Kannada, Gujarati, English).
+
+---
+
+## 🚀 Key Features
+
+| Feature | Subsystem | Status | Implementation Details |
+| :--- | :--- | :--- | :--- |
+| **Single-Login Architecture** | Auth / Frontend | **Implemented** | Authenticated users access farmer operations and the expert workbench in a unified Next.js web application. |
+| **Cadastral Boundary Mapping** | Frontend (Leaflet) | **Implemented** | Interactive farm plot boundary drawer (`BoundaryMapper.tsx`) supporting GeoJSON polygons and Shoelace geodesic acreage. |
+| **Live Weather Telemetry** | Backend / API | **Implemented** | Real-time weather, 7–14 day forecast, reverse-geocoding, and 1800s in-memory caching via Open-Meteo. |
+| **Crop Risk Prediction** | ML / Backend | **Implemented** | 16-feature stage-aware vector processed by trained Random Forest / Gradient Boosted ensemble. |
+| **SHAP Explainability** | ML / Backend | **Implemented** | Top-3 contributing risk drivers and protective factors per prediction computed using TreeExplainer / LinearExplainer. |
+| **Early Warning System (EWS)** | Backend / DB | **Implemented** | Stateful alert engine tracking 6 condition triggers with deduplication and acknowledgment lifecycle. |
+| **Takagi-Sugeno Neuro-Fuzzy Engine** | ML / Backend | **Implemented** | Transparent rule-based fuzzy logic engine (`models/neuro_fuzzy_model.json`) with Gaussian membership functions. |
+| **Sentinel-2 NDVI Monitoring** | Satellite / GEE | **Implemented** | Harmonized Sentinel-2 Level-2A cloud-masked NDVI pipeline with native GEE server-side spatial reduction. |
+| **Multilingual Voice Assistant** | Frontend / Web Speech | **Implemented** | Web Speech API recognition and synthesis grounded strictly in live telemetry across 8 Indian languages. |
+| **Closed-Loop Feedback & Outcomes** | Backend / DB | **Implemented** | Ground-truth outcome collection (`farm_feedback`) for post-harvest model evaluation and validation. |
+| **Row-Level Security (RLS)** | Database | **Implemented** | 12 forward SQL migrations enforcing PostgreSQL RLS across all 10 domain tables. |
+| **SMS & WhatsApp Dispatches** | Notifications | **Implemented (Disabled)** | Twilio SMS/WhatsApp dispatcher with phone masking; toggled `false` by default for ₹0 budget compliance. |
+| **Google Cloud OAuth** | Auth / Frontend | **Planned / In Progress** | Google OAuth button delegates to development role selector until OAuth Client IDs are configured. |
+| **Automated Cron Poller** | Infrastructure | **Planned** | Telemetry and alerts currently refresh on user request/load; scheduled background cron worker is planned. |
 
 ---
 
 ## 🏛️ System Architecture
 
-The following diagram illustrates the component architecture, communication boundaries, authentication layers, and external service interactions in Version 2:
+The following Mermaid diagram outlines the architecture, data flows, and security boundaries across the V2 web platform:
 
 ```mermaid
 flowchart TD
-    subgraph Clients["Browser User Interfaces"]
-        FarmerUI["Farmer Web Dashboard\n(Next.js 14 @ apps/farmer)"]
-        ExpertUI["Expert Workbench\n(Next.js 14 @ apps/expert)"]
+    subgraph Clients["Browser Client Applications (Next.js 14 Monorepo)"]
+        FarmerUI["Farmer Dashboard\n(apps/farmer)"]
+        ExpertUI["Expert Workbench\n(apps/expert)"]
+        VoiceAssist["Grounded Voice Assistant\n(Web Speech API - 8 Languages)"]
     end
 
-    subgraph SharedFrontend["Frontend Library (apps/shared)"]
-        Components["UI Components\n(BoundaryMapper, Navbar, RiskBadge)"]
-        ApiClient["HTTP API Client\n(apps/shared/api)"]
-        AuthCtx["AuthContext\n(Session & Dev Role Switching)"]
+    subgraph SharedFrontend["Frontend Core (apps/shared)"]
+        ApiClient["HTTP API Client\n(Bearer JWT Auth)"]
+        BoundaryMap["BoundaryMapper\n(Leaflet GeoJSON)"]
+        GroundingEng["Assistant Grounding Engine\n(assistantEngine.ts)"]
     end
 
-    subgraph BackendAPI["FastAPI Backend Service (backend/app)"]
-        Router["API Router Layer (/api/v1)\n(auth, farms, predictions, alerts, experts)"]
-        Middleware["Security & Middleware\n(RateLimiter, CORS, RequestID)"]
-        AuthService["Auth & Security Layer\n(JWT Verification, RBAC, Claims)"]
-        
+    subgraph BackendAPI["FastAPI Staging Backend Service (Render)"]
+        Middleware["Security Middleware\n(CORS, RateLimiter, RequestID)"]
+        AuthCore["Auth & RBAC\n(JWT Verification)"]
+        RouterLayer["API Router Layer (/api/v1)\n(farms, weather, predictions, alerts)"]
+
         subgraph CoreServices["Domain Services"]
             FarmSvc["Farm & Crop Service"]
-            PredSvc["Prediction Service\n(FeatureAssembler)"]
-            AlertSvc["Early Warning Alert Engine\n(Dedup & Rule Evaluation)"]
-            WeatherSvc["Weather Service\n(In-Memory Cache)"]
-            SatelliteSvc["Satellite & NDVI Service\n(Geometry Buffer / Cache)"]
-            EvalSvc["Evaluation & Outcome Service"]
-            NotifSvc["Notification Service\n(Idempotency & Masking)"]
+            PredSvc["Prediction Service"]
+            FeatAssembler["Stage-Aware FeatureAssembler\n(16 Features)"]
+            AlertSvc["Early Warning Alert Engine\n(Dedup & Rule Evaluator)"]
+            WeatherSvc["Weather Service\n(Open-Meteo Client & Cache)"]
+            SatelliteSvc["Satellite Vegetation Service\n(Google Earth Engine)"]
         end
     end
 
-    subgraph ExternalTelemetry["External Telemetry & Cloud APIs"]
-        OpenMeteo["Open-Meteo API\n(Live Weather & Forecasts)"]
-        GEE["Google Earth Engine\n(Sentinel-2 L2A Optical NDVI)"]
-        TwilioAPI["Twilio API (SMS / WhatsApp)\n[DISABLED BY DEFAULT]"]
+    subgraph ExternalTelemetry["External Telemetry Providers"]
+        OpenMeteo["Open-Meteo REST API\n(Live Weather & 14-Day Forecast)"]
+        GEE["Google Earth Engine\n(Sentinel-2 L2A Harmonized)"]
     end
 
-    subgraph MLSubsystem["Machine Learning & Explainability"]
-        ScikitModel["Scikit-Learn Model Bundle\n(agri_ai_runtime_bundle.pkl)"]
-        NeuroFuzzy["Neuro-Fuzzy Inference Engine\n(neuro_fuzzy_model.json)"]
-        SHAPEngine["SHAP Explainability Engine\n(TreeExplainer / LinearExplainer)"]
+    subgraph MLSubsystem["Inference & Explainability"]
+        ScikitModel["ML Runtime Bundle\n(agri_ai_runtime_bundle.pkl)"]
+        NeuroFuzzy["Neuro-Fuzzy Model\n(neuro_fuzzy_model.json)"]
+        SHAPEngine["SHAP Explainer\n(TreeExplainer / LinearExplainer)"]
     end
 
-    subgraph DatabaseStorage["Persistence Layer (Supabase PostgreSQL)"]
-        PostgREST["Supabase PostgREST Layer\n(RLS Enforced)"]
-        Tables[("PostgreSQL Tables\n- users\n- farms\n- farm_crops\n- predictions\n- farm_alerts\n- weather_observations\n- satellite_observations\n- audit_logs")]
+    subgraph DatabaseLayer["Persistence Layer (Supabase PostgreSQL)"]
+        PostgREST["PostgREST Layer (RLS Enforced)"]
+        Tables[("PostgreSQL Tables\n- users\n- farms\n- farm_crops\n- predictions\n- farm_alerts\n- weather_observations\n- satellite_observations\n- farm_feedback\n- audit_logs")]
     end
 
-    %% Client flows
+    %% Client Interactions
     FarmerUI --> SharedFrontend
     ExpertUI --> SharedFrontend
+    VoiceAssist --> GroundingEng
+    GroundingEng --> ApiClient
     ApiClient -- "HTTPS / JSON\n(Bearer JWT)" --> Middleware
-    Middleware --> AuthService
-    AuthService --> Router
+    Middleware --> AuthCore
+    AuthCore --> RouterLayer
 
-    %% Routing to services
-    Router --> FarmSvc
-    Router --> PredSvc
-    Router --> AlertSvc
-    Router --> WeatherSvc
-    Router --> SatelliteSvc
-    Router --> EvalSvc
+    %% Router to Services
+    RouterLayer --> FarmSvc
+    RouterLayer --> PredSvc
+    RouterLayer --> AlertSvc
+    RouterLayer --> WeatherSvc
+    RouterLayer --> SatelliteSvc
 
-    %% Service to ML
-    PredSvc --> ScikitModel
+    %% Service Orchestration
+    PredSvc --> FeatAssembler
+    FeatAssembler --> WeatherSvc
+    FeatAssembler --> SatelliteSvc
+    FeatAssembler --> ScikitModel
     PredSvc --> NeuroFuzzy
     PredSvc --> SHAPEngine
 
-    %% External Telemetry
-    WeatherSvc -- "HTTP GET (Coords)" --> OpenMeteo
-    SatelliteSvc -- "Python API (GeoJSON)" --> GEE
-    AlertSvc -. "Dispatches if enabled" .-> NotifSvc
-    NotifSvc -. "POST [DISABLED]" .-> TwilioAPI
+    %% External APIs
+    WeatherSvc -- "HTTP GET" --> OpenMeteo
+    SatelliteSvc -- "ee.Initialize() (GeoJSON)" --> GEE
 
-    %% Persistence flows
-    FarmSvc -- "Server / User Token" --> PostgREST
-    PredSvc -- "Persist Assessment" --> PostgREST
-    AlertSvc -- "Manage Lifecycle" --> PostgREST
-    WeatherSvc -- "Cache Observation" --> PostgREST
-    SatelliteSvc -- "Store NDVI Stats" --> PostgREST
+    %% Persistence
+    FarmSvc --> PostgREST
+    PredSvc --> PostgREST
+    AlertSvc --> PostgREST
+    WeatherSvc --> PostgREST
+    SatelliteSvc --> PostgREST
     PostgREST --> Tables
 ```
 
 ---
 
-## 📐 System Design Details
+## 🛰️ The Telemetry–Prediction Pipeline (Open-Meteo + GEE + ML)
 
-### A. Presentation Layer & Unified Single-Login Architecture
-- **Unified Single-Login Experience (`ONE LOGIN`)**: All authenticated users log in through a single authentication flow and land on the main farmer dashboard and field operations by default. No separate login or registration is required to access advanced features.
-- **Farmer Dashboard (`apps/farmer`)**: Tailored for field accessibility and smallholder operations. Features:
-  - **Top-Left Profile Access**: "My Profile & Account Settings" is pinned at the top-left of the sidebar for immediate account and notification management across any view.
-  - **Sidebar Field Selectors**: Real-time district, season, year, and crop selection updating the live risk assessment and comparative table.
-  - **Open Expert Workbench**: A dedicated, prominent sidebar button allows any authenticated user to seamlessly open the **Expert Workbench** without switching accounts or re-authenticating.
-- **Integrated Expert Workbench**:
-  - Embedded directly within the dashboard under the `expert` view with a 1-click **← Return to Farmer Operations** button.
-  - Includes:
-    - **Diagnostic Overview**: Production ensemble architecture weights (Global 40%, Regional 35%, Crop-specific 25%), baseline model performance metrics (ROC-AUC, F1, Brier score), and global feature importance attributions.
-    - **Takagi-Sugeno Neuro-Fuzzy AI Benchmark**: 6 canonical domain rules, Gaussian bell antecedents, and live parameter evaluation.
-    - **SHAP Explainability**: Deep TreeExplainer feature attributions for any simulated or farm observation.
-    - **Scenario Twin Simulator**: Parametric sliders for rainfall, temperature, humidity, and soil moisture stress tests.
-    - **Cross-Farm EWS Incident Management & Ground-Truth Evaluation**.
-- **Shared Code (`apps/shared`)**: Houses common types, Leaflet cadastral boundary mapping (`BoundaryMapper.tsx`), localization dictionaries (8 Indian languages), and HTTP API client abstractions with standard error unwrapping (`client.ts`).
+The end-to-end telemetry and prediction pipeline operates under strict data provenance and agronomic integrity rules:
 
-### B. API Layer
-- Built on **FastAPI** (`backend/app/main.py`) using modular routers under prefix `/api/v1`.
-- Comprehensive Pydantic v2 schemas for all inputs and outputs with automated validation.
-- Centralized exception handlers ensure internal stack traces are sanitized and never leaked to users.
-- Standard health check probe available at `/health` and `/api/v1/health` for container orchestration.
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Farmer as Farmer / Agronomist
+    participant UI as Next.js Web App
+    participant API as FastAPI Backend
+    participant Weather as Open-Meteo API
+    participant GEE as Google Earth Engine
+    participant ML as ML Inference & SHAP
+    participant DB as Supabase PostgreSQL
 
-### C. Authentication & Authorization
-- **Unified Auth & Session Handling**: Users authenticate once via Supabase Auth, receiving a signed JWT containing server-managed `app_metadata` and user ID (`sub`).
-- **One-Login Access Model**: All authenticated users can navigate between farmer operations and the expert workbench UI. Endpoints requiring administrative write actions or staff privileges enforce server-side RBAC dependencies (`get_expert_user`, `get_admin_user`).
-- **User Metadata Security**: In adherence to Supabase Advisor guidelines, client-editable `user_metadata` is **never** used for role authorization. Roles are strictly evaluated via server-managed `app_metadata` or database security definer functions (`public.current_user_role()`).
-- **Google OAuth Status**: The login UI provides a Google sign-in button, but Google OAuth is **not yet configured** in Google Cloud Console. In local development and testing, an authorized development role selector (`Farmer`, `Expert`, `Admin`) is provided for seamless testing without external dependencies.
+    Farmer->>UI: Selects farm plot & crop cycle
+    UI->>API: GET /api/v1/farms/{id}/predict (Bearer JWT)
+    API->>DB: Query farm cadastral geometry & crop phenology
+    DB-->>API: Coordinates (GeoJSON), Sowing Date, Crop Type
 
-### D. Machine Learning Inference & Feature Assembly Pipeline
-- **Dual Inference Engine**:
-  - **Primary Model Bundle (`models/agri_ai_runtime_bundle.pkl`)**: Calibrated classification ensemble combining Random Forest (`RandomForestClassifier`) and LightGBM / Gradient Boosting estimators. Maps continuous consensus risk probabilities to 3 distinct operational risk bands:
-    - **Low Risk**: $[0.00, 0.35)$
-    - **Medium Risk**: $[0.35, 0.65)$
-    - **High Risk**: $[0.65, 1.00]$
-  - **Neuro-Fuzzy Inference System (`models/neuro_fuzzy_model.json`)**: Takagi-Sugeno fuzzy logic architecture using Gaussian bell membership antecedents across 8 environmental features and 6 canonical agronomic rules for transparent validation.
-- **Stage-Aware Feature Engineering (`backend/app/services/feature_service.py`)**:
-  - The trained ML bundle accepts an exact 16-feature vector (6 categorical, 10 numerical):
-    - **Categorical (6)**: `State`, `Region`, `Season`, `Crop`, `SoilType`, `IrrigationLevel`.
-    - **Numerical (10)**: `Year`, `Rainfall`, `Temperature`, `Humidity`, `SoilMoisture`, `NDVI_Flowering`, `WaterStress`, `PestRisk`, `SuitabilityScore`, `YieldIndex`.
-  - **Genuinely Integrated Live Telemetry vs. Baselines**:
-    - `Temperature`: Real-time dry-bulb 2m temperature from Open-Meteo. Stale if older than 24 hours.
-    - `Humidity`: Real-time 2m relative humidity (%) from Open-Meteo. Stale if older than 24 hours.
-    - `SoilMoisture`: 4-layer root-zone soil moisture relative saturation (%) derived from Open-Meteo ECMWF Land model (0–27 cm: 0–1 cm, 1–3 cm, 3–9 cm, 9–27 cm).
-    - `Rainfall`: Accumulated seasonal precipitation computed from daily observations if continuous history ($\ge 14$ days) is recorded for active crop cycle, or projected using baseline daily rate; falls back to historical median if unobserved.
-    - `NDVI_Flowering`: **Strict Phenology Guard**: Instantaneous Sentinel-2 NDVI is **only** substituted into `NDVI_Flowering` if the crop is in its active flowering stage (evaluated by phenological stage keywords or Days After Sowing within crop-specific flowering window: e.g., Rice 55–90 DAS, Wheat 60–90 DAS, Cotton 70–115 DAS). Otherwise, calibrated district historical baselines are retained with clear `provenance` metadata.
-    - `WaterStress`, `PestRisk`, `SuitabilityScore`, `YieldIndex`: Dynamic derived indices calibrated against live weather and soil type.
-- **Explainability**: SHAP attributions (`TreeExplainer` and `LinearExplainer`) output top risk contributors and mitigating protective factors per prediction.
-- **Tenant Isolation & Persistence**: Every farm assessment is saved in `public.predictions` with user ID, farm ID, complete feature provenance, and data quality flags.
+    par Weather Telemetry
+        API->>Weather: Fetch 2m Temp, Relative Humidity, Soil Moisture, Precip
+        Weather-->>API: Live meteorological metrics (Cached 1800s)
+    and Satellite Vegetation
+        API->>GEE: Query Sentinel-2 L2A collection over farm polygon
+        GEE-->>API: SCL/QA60 Cloud-masked NDVI stats (Mean, Min, Max, Valid Count)
+    end
 
-### E. Live Weather & Meteorological Telemetry Pipeline
-- **Provider & Integration**: Built on Open-Meteo's free, keyless REST API (`https://api.open-meteo.com/v1/forecast`).
-- **Supported Endpoints**:
-  - `GET /api/v1/weather/current?latitude={lat}&longitude={lon}`: Real-time 2m temperature, relative humidity, precipitation, wind speed (10m), weather code, and multi-layer soil moisture.
-  - `GET /api/v1/weather/forecast?latitude={lat}&longitude={lon}&days={7|14}`: Daily projections including min/max temperature, precipitation sum, and weather code.
-  - `GET /api/v1/weather/reverse-geocode?latitude={lat}&longitude={lon}`: Locality and district resolution via OpenStreetMap Nominatim with BigDataCloud secondary fallback and clean coordinate formatting fallback.
-- **Location Integrity (Device GPS vs. Manual Selection)**:
-  - **Browser Geolocation**: Initiated exclusively via user consent prompt through `navigator.geolocation`. Only marked as **GPS Verified** after the browser returns valid coordinates (`status: "granted"`).
-  - **Manual Selection**: Users can select from major Indian agricultural regions or type custom coordinates (`status: "manual"`). Marked with a distinct pin icon (`📌 Manual Selection`).
-  - **Prominent Place Name Resolution**: When reverse-geocoding succeeds, the returned locality, city/town, district, state, and country are formatted into a clean, deduplicated place name (e.g., `Kothnur, Bengaluru, Karnataka, India`). If geocoding fails or is rate-limited, weather continues to display uninterrupted with a clear `Place name unavailable` label and coordinates shown in the subtitle.
-  - **Current User Location vs. Registered Farm Monitoring Separation**: Current device weather/location (`UserLiveWeatherWidget`) and registered farm plots (`FarmPlotMonitoringCard`) operate on two completely separate data flows. Registered farm plots use their own stored cadastral coordinates and never overwrite or borrow the user's browser location.
-- **Caching & Rate Protection**: Thread-safe in-memory cache keyed by rounded coordinates (`round(lat, 3), round(lon, 3)` for geocoding; `round(lat, 4), round(lon, 4)` for weather) with 1800-second (30-minute) TTL (`WEATHER_CACHE_TTL_SECONDS`).
-
-### E1. Live Farm Monitoring & Multi-Plot Architecture
-- **Multi-Farm Grid**: The "Live Farm Monitoring & Sensors" view displays all registered plots belonging to the authenticated user as individual cards (`FarmPlotMonitoringCard`), each keyed by its stable UUID.
-- **Isolated Per-Plot Telemetry**: Each farm card independently fetches its own active crop cycle, latest inferred prediction, live Open-Meteo weather station readings, Sentinel-2 NDVI canopy observations, and early warning risk trends. Metrics from one farm never bleed into or overwrite another.
-- **Lifecycle & Registration Refresh**: Adding a new plot automatically refreshes the monitoring card list via window focus and session event listeners without requiring logout or application restart.
-- **Zero Fabrication**: When telemetry or satellite passes are unavailable, cards display explicit unavailable states rather than synthetic or fabricated placeholder data.
-
-### E2. Google Earth Engine (GEE) & Sentinel-2 NDVI Pipeline
-- **Collection**: Harmonized Sentinel-2 Level-2A Surface Reflectance (`COPERNICUS/S2_SR_HARMONIZED`).
-- **Cloud & Shadow Masking**: Dual-stage filtering combining Sentinel-2 Scene Classification Layer (SCL) and QA60 bitmask:
-  - SCL bands 3 (cloud shadow), 8 (cloud medium probability), 9 (cloud high probability), 10 (cirrus), and 11 (snow) are masked.
-  - QA60 bit 10 (opaque clouds) and bit 11 (cirrus) are bitwise masked.
-- **NDVI Formula**: Standard normalized difference vegetation index:
-  $$\text{NDVI} = \frac{\text{B8 (NIR, 842 nm)} - \text{B4 (Red, 665 nm)}}{\text{B8} + \text{B4}}$$
-- **Spatial Reduction**: Cloud reduction executed directly on Google Earth Engine servers at 10m native spatial resolution across farm cadastral polygon geometries (`ee.Reducer.mean()`, `median()`, `minMax()`, `stdDev()`, `count()`). Zero raw raster arrays are downloaded to the backend.
-- **Operational Status & Fallbacks**:
-  - **In Development / Testing**: If Google Earth Engine credentials (`GEE_PROJECT_ID`, `GEE_SERVICE_ACCOUNT_EMAIL`, `GEE_PRIVATE_KEY`) are not provisioned, the provider safely returns status `SATELLITE_NOT_CONFIGURED` without crashing.
-  - **Cloud Obscuration**: If cloud cover exceeds 30% over the 45-day window, status `SATELLITE_NO_VALID_OBSERVATION` is recorded, and the pipeline gracefully defaults to historical district baselines.
-  - **NDVI Interpretation**: NDVI is strictly interpreted as a vegetation vigor and green canopy density indicator, **not** as standalone proof of crop failure. Observation date and valid pixel counts are always displayed alongside values.
-
-### F. Data & Persistence
-- **Supabase PostgreSQL**: Manages 10 core domain tables (`users`, `farms`, `farm_crops`, `predictions`, `recommendations`, `weather_observations`, `satellite_observations`, `farm_alerts`, `farm_feedback`, `audit_logs`).
-- **Row-Level Security (RLS)**: Enforced across all tables. Tenant isolation ensures farmers can only query or mutate rows matching their authenticated `user_id` or owned farms.
-- **Engine-Level Role Immutability**: Migration 012 installs a PostgreSQL `BEFORE UPDATE` trigger on `public.users` that rejects any unauthorized modification to `role`, `id`, `email`, or `is_active`.
-- **Migration Reconciliation**: Migrations `001` through `012` must be reviewed and applied sequentially. Live Supabase instances must be inspected prior to migration application.
-
-### G. Alerts & Notifications
-- **Early Warning Alert Engine**: Evaluates 6 deterministic alert conditions (`RISK_THRESHOLD_CROSSED`, `RISK_TREND_INCREASING`, `TELEMETRY_DEGRADATION`, `SATELLITE_STALE`, `WEATHER_STALE`, `DATA_QUALITY_DEGRADED`) with automated deduplication across 4 distinct lifecycle states.
-- **Notification Safety Notice**: The dispatch engine supports Twilio SMS and WhatsApp with SHA-256 idempotency deduplication and phone masking. However, **`SMS_ENABLED=false` and `WHATSAPP_ENABLED=false` by default**. Dispatches are suppressed during staging to ensure ₹0 budget compliance.
-
-### H. Security & Reliability
-- **Rate Limiting**: Sliding-window in-memory rate limiter (`SlidingWindowRateLimiter`) with automatic garbage collection protects against API abuse and brute-force attempts.
-- **Defense-in-Depth Middleware**: Enforces secure HTTP headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`) and unique request correlation tracking (`X-Request-ID`).
-- **Automated Secret Audits**: Pre-commit scanner (`scripts/security_check.py`) scans code for high-risk tokens, private keys, and live JWTs before any code is staged or committed.
-
-### I. Deployment Topology (Version 2 Staging)
-- **FastAPI Backend**: Render Web Service (`crop-risk-api-staging`) deployed from `release/v2-staging` using Uvicorn.
-- **Frontends**: Vercel Preview deployments for `apps/farmer` and `apps/expert`.
-- **Database**: Dedicated staging schema or existing Supabase project after migration reconciliation.
-- **Isolation**: Existing Version 1 Render deployment (`https://reducecropfailure.onrender.com/`) operates independently and remains untouched.
-
----
-
-## 🔄 Request Lifecycle Examples
-
-### 1. Standard Crop Failure Risk Prediction Flow
-```text
-1. User interacts with Farmer Dashboard or Expert Workbench.
-2. Next.js API client signs request with Bearer JWT and sends POST /api/v1/predictions.
-3. FastAPI Request Middleware validates correlation ID and checks SlidingWindowRateLimiter.
-4. Security Dependency verifies JWT signature, parses user role, and enforces RBAC.
-5. Pydantic validates input parameters (crop, season, stage, location/boundary).
-6. PredictionService invokes FeatureAssembler to merge telemetry with crop growth stage baselines.
-7. Model pipeline computes failure risk probability and maps to calibrated risk band.
-8. SHAP Engine computes top contributing and protective feature contributions.
-9. Recommendation Engine generates actionable agronomic guidance.
-10. PredictionRepository persists prediction record into Supabase public.predictions (subject to RLS).
-11. AlertService evaluates whether current risk or delta crosses warning thresholds.
-12. Response is returned to frontend client as structured JSON.
+    API->>API: FeatureAssembler merges 16 features (Phenology Guard applied)
+    API->>ML: Pass assembled 16-feature vector
+    ML-->>API: Continuous Risk Score + Risk Band (Low/Medium/High) + SHAP values
+    API->>DB: Persist prediction & provenance in public.predictions
+    API->>API: Evaluate Early Warning System (EWS) alert rules
+    API-->>UI: Return risk probability, SHAP factors, NDVI, and advisories
+    UI-->>Farmer: Render risk gauge, satellite canopy card, weather widget
 ```
 
-### 2. Satellite & Weather-Assisted Prediction Flow
-```text
-1. User requests assessment for a registered farm plot (/api/v1/farms/{farm_id}/predict).
-2. FarmService retrieves farm polygon coordinates and verifies user ownership via RLS.
-3. WeatherService checks in-memory cache for coordinates; if stale, fetches live metrics from Open-Meteo.
-4. SatelliteService queries Sentinel-2 L2A collection over farm polygon for latest cloud-free window.
-5. Live NDVI statistics (mean, min, max, std) are derived; fallback baseline applied if cloudy.
-6. FeatureAssembler merges live weather (temperature, humidity, precipitation) and NDVI into feature row.
-7. Feature provenance metadata is constructed (distinguishing live telemetry from baseline fallbacks).
-8. ML inference and SHAP explanation execute using assembled live features.
-9. Telemetry observations and predictions are stored in respective Supabase tables.
-10. Client dashboard renders interactive risk badge, NDVI vegetation gauge, and weather widget.
-```
+### Telemetry & Provenance Rules:
+1. **Weather Telemetry (Open-Meteo)**:
+   - Provides 2-meter dry-bulb temperature (°C), relative humidity (%), precipitation (mm), and root-zone soil moisture relative saturation across 4 ECMWF Land depth layers (0–1cm, 1–3cm, 3–9cm, 9–27cm).
+   - Metrics older than 24 hours are flagged as stale.
+2. **Sentinel-2 Surface Reflectance (Google Earth Engine)**:
+   - Queries `COPERNICUS/S2_SR_HARMONIZED` within a 45-day lookback window.
+   - Dual-stage cloud filtering masks SCL shadow/cloud classes (3, 8, 9, 10, 11) and QA60 opaque/cirrus bitmasks (bits 10 & 11).
+   - Computes standard NDVI: $\text{NDVI} = \frac{\text{B8} - \text{B4}}{\text{B8} + \text{B4}}$.
+   - Cloud spatial reduction is executed directly on GEE cloud servers at 10m native resolution across the farm polygon.
+3. **Phenology Guard**:
+   - Live Sentinel-2 NDVI is **only** substituted into the model's `NDVI_Flowering` feature if the crop is in its active flowering stage (evaluated by phenological stage keywords or Days After Sowing within crop-specific flowering windows, e.g., Rice 55–90 DAS, Wheat 60–90 DAS, Cotton 70–115 DAS). Otherwise, calibrated historical district baselines are retained with explicit provenance.
+4. **Honest Observability**:
+   - When satellite observations are blocked by clouds or unconfigured, the system reports status `SATELLITE_NO_VALID_OBSERVATION` or `SATELLITE_NOT_CONFIGURED` without crashing or inventing synthetic values.
 
 ---
 
-## ⚖️ Design Decisions, Trade-offs & Limitations
+## 🔬 Machine Learning & Prediction Engine
 
-| Architectural Decision | Technical Rationale | Trade-off / Cost | Current Limitation |
-|---|---|---|---|
-| **Decoupled Frontend & Backend** | Independent scaling, mobile-optimized Next.js UI, standard REST contract. | Requires CORS handling, JWT token management, and separate build pipelines. | Two separate staging targets required (Vercel + Render). |
-| **Supabase (PostgreSQL + RLS)** | Managed PostgreSQL with instant PostgREST, built-in Auth, and declarative Row-Level Security. | Tighter coupling to Supabase conventions and migration sequencing. | Direct PostgREST queries must be kept in sync with application-level schemas. |
-| **Model Pre-Warmup on Startup** | Warms up scikit-learn bundle on non-testing boot to eliminate first-request latency spikes. | Adds 2–4 seconds to application cold-start boot time. | In-memory model bundle consumes ~180MB RAM per worker process. |
-| **In-Memory Rate Limiting** | Zero external infrastructure required; lightweight sliding-window counter. | Counters are per-worker instance rather than globally coordinated across clusters. | Multi-worker horizontal scaling requires Redis-backed limiter in future phases. |
-| **Notification Engine Capped OFF** | Prevents unexpected charges on trial Twilio accounts; ensures strict ₹0 budget. | Outbound SMS and WhatsApp alerts cannot reach farmers automatically during staging. | Manual on-demand testing required; production requires funded Twilio / WhatsApp Business account. |
-| **Selective Database Migration** | Allows existing Supabase project reuse without breaking active Version 1 tables. | Requires careful verification of existing remote schemas before running migrations. | Remote database schema must be reconciled prior to live execution of Migration 012. |
+### 1. Trained Model Bundle (`models/agri_ai_runtime_bundle.pkl`)
+The primary predictor is a calibrated ensemble trained on comprehensive Indian agricultural datasets:
+- **Algorithms**: Calibrated Random Forest (`RandomForestClassifier`) combined with Gradient Boosting estimators.
+- **Risk Calibration**: Maps continuous risk probabilities to 3 distinct operational bands:
+  - **Low Risk**: $[0.00, 0.45)$
+  - **Medium Risk**: $[0.45, 0.70)$
+  - **High Risk**: $[0.70, 1.00]$
+- **16 Input Features**:
+  - **6 Categorical**: `State`, `Region`, `Season`, `Crop`, `SoilType`, `IrrigationLevel`.
+  - **10 Numerical**: `Year`, `Rainfall` (mm), `Temperature` (°C), `Humidity` (%), `SoilMoisture` (%), `NDVI_Flowering` (0–1), `WaterStress` (0–1), `PestRisk` (0–1), `SuitabilityScore` (0–1), `YieldIndex` (0–250).
 
----
+### 2. Neuro-Fuzzy Inference System (`models/neuro_fuzzy_model.json`)
+A complementary Takagi-Sugeno fuzzy logic architecture using Gaussian bell membership antecedents across 8 environmental features and 6 agronomic rules, providing transparent rule validation for researchers.
 
-## 🛠️ Feature Status: Implemented vs. Planned
-
-| Feature | Subsystem | Status | Implementation Details |
-|---|---|---|---|
-| **One-Login Experience** | Frontend / Auth | **`IMPLEMENTED`** | Unified authentication: all users log into the single application with immediate farmer dashboard access. |
-| **Integrated Expert Workbench** | Frontend / UI | **`IMPLEMENTED`** | One-click access from sidebar to deep diagnostics, SHAP, and Neuro-Fuzzy with return-to-farmer button. |
-| **Live Weather Risk Prediction** | ML / Backend / UI | **`IMPLEMENTED`** | Real-time Open-Meteo telemetry merged with crop growth stage baselines. |
-| **SHAP Explainability** | ML / Backend / UI | **`IMPLEMENTED`** | Top-3 risk contributors, protective factors, and waterfall charts. |
-| **Farm & Crop Management** | Backend / Database / UI | **`IMPLEMENTED`** | CRUD operations with polygon boundary geometry (Shoelace area) & village fields. |
-| **Cadastral Boundary Mapping** | Frontend / Leaflet | **`IMPLEMENTED`** | Interactive farm polygon drawer with GeoJSON validation and coordinate conversion. |
-| **Multilingual Localization** | Frontend | **`IMPLEMENTED`** | 8 languages: English, Hindi, Marathi, Bengali, Telugu, Tamil, Kannada, Gujarati. |
-| **Early Warning Alert Engine** | Backend / Database / UI | **`IMPLEMENTED`** | 6 alert types (risk spikes, telemetry degradation, stale observations). |
-| **Neuro-Fuzzy Inference** | ML / Backend / UI | **`IMPLEMENTED`** | Rule-based fuzzy logic engine with Gaussian membership functions. |
-| **Ground-Truth Evaluation** | Backend / UI | **`IMPLEMENTED`** | Verified outcome linkage, leakage auditing, and evaluation readiness. |
-| **Supabase RLS & RBAC** | Database / Auth | **`IMPLEMENTED`** | Row-Level Security across all 10 tables, server-managed role claims. |
-| **Notification Infrastructure** | Backend / Service | **`IMPLEMENTED (DISABLED)`** | Twilio SMS/WhatsApp adapter ready with idempotency; safely toggled OFF by default. |
-| **Google OAuth Sign-In** | Auth / Frontend | **`PLANNED / NOT CONFIGURED`** | Client button delegates to mock dev-role fallback until Google Console credentials are configured. |
-| **Automated Cron Alert Poller** | Automation | **`PLANNED`** | Endpoints are triggered on-demand; automatic cron worker planned for Phase 3. |
+### 3. SHAP Explainability Engine
+Generates local feature attributions using `TreeExplainer` and `LinearExplainer`. Explains predictions by surfacing the top-3 contributing risk factors and top protective mitigating factors.
 
 ---
 
-## 🏗️ Repository Directory Structure
+## 🚨 Early Warning System (EWS)
+
+The Early Warning System (`backend/app/services/alert_service.py`) evaluates 6 deterministic conditions against live telemetry and prediction history:
+
+| Alert Trigger | Severity | Condition | Recommended Action |
+| :--- | :--- | :--- | :--- |
+| `RISK_THRESHOLD_CROSSED` | **Critical / High** | Prediction risk probability crosses medium ($0.45$) or high ($0.70$) threshold | Review agronomic advisory and consider emergency protective interventions. |
+| `RISK_TREND_INCREASING` | **High** | Consecutive assessments show $\ge 15\%$ increase in failure probability | Inspect farm for acute moisture deficit or pest escalation. |
+| `TELEMETRY_DEGRADATION` | **Medium** | Weather station or satellite observation missing during active vegetative stage | Re-verify farm cadastral coordinates or inspect on-ground sensors. |
+| `SATELLITE_STALE` | **Low** | No cloud-free Sentinel-2 observation available in the last 21 days | Rely on ground visual inspections until the next clear orbital pass. |
+| `WEATHER_STALE` | **Medium** | Meteorological data has not updated for $> 48$ hours | Check local network connectivity or weather station status. |
+| `DATA_QUALITY_DEGRADED` | **Medium** | Over 50% of assembled features rely on fallback district baselines | Update crop planting dates and soil profile in farm settings. |
+
+- **Lifecycle Management**: Alerts transition through `active` $\rightarrow$ `acknowledged` $\rightarrow$ `resolved` states.
+- **Deduplication**: SHA-256 fingerprinting prevents alert storms.
+
+---
+
+## 🎙️ Multilingual AI Voice Assistant
+
+The voice assistant interface (`VoiceAssistantPanel.tsx`) provides hands-free accessibility for rural smallholders:
+- **Zero Hallucination Grounding**: Powered by `assistantEngine.ts`, answers are resolved deterministically from authenticated farm telemetry, live Open-Meteo weather, Sentinel-2 observations, and SHAP drivers.
+- **Web Speech API**: Uses browser-native speech recognition (`webkitSpeechRecognition`) and speech synthesis (`speechSynthesis`).
+- **8 Supported Languages**: Hindi (`hi-IN`), Marathi (`mr-IN`), Bengali (`bn-IN`), Telugu (`te-IN`), Tamil (`ta-IN`), Kannada (`kn-IN`), Gujarati (`gu-IN`), English (`en-IN`).
+- **Action Confirmation**: Critical commands (such as running a new assessment or acknowledging alerts) require explicit user voice or button confirmation.
+
+---
+
+## 🗂️ Project Directory Structure
 
 ```text
 ai-crop-failure-project/
-├── .github/
-│   └── workflows/
-│       └── ci.yml               # GitHub Actions CI (Backend, Farmer UI, Expert UI, Smoke Tests)
 ├── apps/
 │   ├── expert/                  # Next.js 14 Expert & Agronomist Workbench
-│   │   ├── app/                 # Workbench pages, Digital Twin sliders, SHAP attribution
-│   │   ├── package.json         # Workspace package definition
-│   │   └── test_expert.js       # Expert app automated tests
-│   ├── farmer/                  # Next.js 14 Farmer Mobile-First Dashboard
-│   │   ├── app/                 # Farm registration, crop monitoring, advisories
-│   │   ├── package.json         # Workspace package definition
-│   │   └── test_farmer.js       # Farmer app automated tests
+│   │   ├── app/                 # Diagnostic views, scenario twin, SHAP analytics
+│   │   └── package.json         # Workspace package configuration
+│   ├── farmer/                  # Next.js 14 Farmer Dashboard (Mobile-first)
+│   │   ├── app/                 # Farm plot cards, weather widget, voice assistant
+│   │   └── package.json         # Workspace package configuration
 │   └── shared/                  # Shared TypeScript library
-│       ├── api/                 # Typed API clients (farms, crops, alerts, predictions)
-│       ├── components/          # Reusable components (Navbar, BoundaryMapper, RiskBadge)
+│       ├── api/                 # Typed API client abstractions
+│       ├── components/          # Reusable components (BoundaryMapper, VoiceAssistant)
 │       ├── context/             # AuthContext, UserLocationContext
-│       ├── data/                # district_metadata.json (authoritative district centers)
-│       ├── translations/        # Multilingual UI dictionaries (8 Indian languages)
-│       └── types/               # TypeScript domain interfaces
+│       └── services/            # assistantEngine.ts (Grounded Voice Assistant)
 ├── backend/
 │   ├── app/
-│   │   ├── api/routes/          # FastAPI routers (auth, farms, predictions, alerts, experts)
-│   │   ├── core/                # config, security, rate_limiter, logging, supabase client
-│   │   ├── repositories/        # Data access layer (in-memory + Supabase PostgREST)
-│   │   ├── schemas/             # Pydantic v2 domain models
-│   │   ├── services/            # Business logic (prediction, alert, weather, satellite, evaluation)
-│   │   └── main.py              # FastAPI application entrypoint & middleware
-│   ├── requirements.txt         # Python dependencies for backend service
-│   └── tests/                   # Pytest test suite (RBAC, isolation, alerts, ML regressions)
-├── data/                        # Historical district datasets, predictions, and geoJSONs
-├── docs/                        # Architecture specs, API contracts, security models
-├── models/                      # ML bundles, specialized models, neuro-fuzzy rules
-├── postman/                     # Postman collections & environment files for smoke testing
-├── scripts/                     # Security scanner, API test runners, district data scripts
-├── src/                         # Core ML training, SHAP, and legacy Streamlit scripts
+│   │   ├── api/routes/          # FastAPI routers (farms, weather, predictions, alerts)
+│   │   ├── core/                # config, security, rate_limiter, logging, supabase
+│   │   ├── repositories/        # Database access layer (Supabase PostgREST)
+│   │   ├── schemas/             # Pydantic v2 schemas with validation
+│   │   ├── services/            # Domain services (prediction, satellite, weather, alerts)
+│   │   └── main.py              # FastAPI application entrypoint
+│   ├── requirements.txt         # Backend Python dependencies
+│   └── tests/                   # Pytest automated test suite (235 tests)
+├── data/                        # District baselines and historical observations
+├── models/                      # ML bundles and neuro-fuzzy configurations
+├── scripts/
+│   └── security_check.py        # Automated repository secret scanner
+├── src/                         # ML inference, feature engineering, and legacy code
 ├── supabase/
-│   └── migrations/              # 12 Forward SQL migrations (001_initial to 012_fix_user_metadata_rls)
-├── dashboard_app.py             # Streamlit Version 1 prototype dashboard
-├── package.json                 # Monorepo workspace configuration
-├── requirements.txt             # Core Python ML training requirements
-└── .env.example                 # Safe environment configuration template
+│   └── migrations/              # 12 Forward PostgreSQL SQL migrations (001 to 012)
+├── .env.example                 # Safe environment configuration template
+├── .python-version              # Pinned Python runtime (3.12.11)
+├── package.json                 # Monorepo npm workspaces configuration
+├── pytest.ini                   # Pytest discovery and warning configuration
+└── README.md                    # Project documentation
 ```
 
 ---
 
-## 💻 Local Development Setup (Windows PowerShell & VS Code)
+## 💻 Local Setup & Installation
 
 ### Prerequisites
-- **Python**: Python 3.10 to 3.12 (compatible with `scikit-learn>=1.5.0`, `pydantic>=2.8.0`, and `earthengine-api>=1.7.0`).
+- **Python**: 3.10 to 3.12 (Python 3.12 recommended; Render staging uses Python 3.12 via `.python-version`).
 - **Node.js**: Node 20.x or later with `npm`.
-- **Git**: Installed and configured.
+- **Git**: Installed.
 
-### 1. Python Virtual Environment Setup
-
-Open PowerShell in the project root:
+### 1. Backend Service Setup (FastAPI)
 ```powershell
-# Create virtual environment using Python 3.10/3.11/3.12
+# Open terminal in project root
 python -m venv venv
-
-# Activate virtual environment
 .\venv\Scripts\activate
 
-# Upgrade pip and install dependencies
+# Install backend dependencies
 python -m pip install --upgrade pip
 pip install -r backend/requirements.txt -r requirements.txt
-```
 
-### 2. Node.js & Workspace Installation
-
-Install root and workspace dependencies:
-```powershell
-# Install all npm workspaces (apps/farmer, apps/expert, apps/shared)
-npm install
-
-# Run frontend test suites
-npm run test:frontend
-```
-
-### 3. Environment Variables Configuration
-
-Copy `.env.example` to `.env`:
-```powershell
-Copy-Item .env.example .env
-```
-Open `.env` and fill in your local development placeholders. **Never commit `.env` to Git.**
-
----
-
-## 🔑 Environment Variable Reference
-
-| Variable Name | Purpose | Required / Optional | Consuming Service |
-|---|---|---|---|
-| `APP_ENV` | Application environment (`development`, `testing`, `production`) | Required | FastAPI Backend / Logging |
-| `API_VERSION` | API version routing prefix (`v1`) | Required | FastAPI Router Mounts |
-| `PORT` | Local server port (Default `8000`) | Optional | Uvicorn Server |
-| `HOST` | Bind host address (Default `0.0.0.0`) | Optional | Uvicorn Server |
-| `CORS_ORIGINS` | Allowed frontend origins (JSON array) | Required | FastAPI CORS Middleware |
-| `SUPABASE_URL` | Base URL of your Supabase project | Required in Live Mode | Backend Supabase Client |
-| `SUPABASE_PUBLISHABLE_KEY` | Supabase Anon/Publishable Key | Required in Live Mode | Backend / PostgREST Client |
-| `SUPABASE_SECRET_KEY` | Supabase Service Role Key (Backend ONLY) | Required in Live Mode | Backend Repositories (Server-side) |
-| `SUPABASE_JWT_SECRET` | Secret key for verifying JWT tokens | Required | FastAPI `core/security.py` |
-| `NEXT_PUBLIC_SUPABASE_URL` | Public Supabase project URL | Required for Live UI | Next.js Frontend Apps |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public Supabase publishable key | Required for Live UI | Next.js Supabase Client |
-| `GOOGLE_CLIENT_ID` | OAuth Client ID from Google Cloud Console | Optional (Dev Fallback) | Next.js AuthContext |
-| `GOOGLE_CLIENT_SECRET` | OAuth Client Secret from Google Cloud Console | Optional (Dev Fallback) | Supabase Auth Provider |
-| `OPENMETEO_BASE_URL` | Weather API endpoint (Default: Open-Meteo) | Optional | Weather Service |
-| `RUNTIME_MODEL_BUNDLE_PATH` | Path to runtime ML pickle artifact | Required | `PredictionService` |
-| `SMS_ENABLED` | Master switch for Twilio SMS dispatch | **Must be `false`** | Notification Service |
-| `WHATSAPP_ENABLED` | Master switch for Twilio WhatsApp dispatch | **Must be `false`** | Notification Service |
-| `TWILIO_ACCOUNT_SID` | Twilio Account Identifier | Optional (Placeholder) | Notification Provider |
-| `TWILIO_AUTH_TOKEN` | Twilio Authentication Token | Optional (Placeholder) | Notification Provider |
-
----
-
-## 🚀 Running the Services Locally
-
-### 1. Start the FastAPI Backend Service
-```powershell
-.\venv\Scripts\activate
+# Start local FastAPI server
 uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
-- **Service Root**: `http://127.0.0.1:8000`
-- **Interactive Swagger Docs**: `http://127.0.0.1:8000/docs`
-- **Alternative ReDoc**: `http://127.0.0.1:8000/redoc`
-- **Health Check Endpoint**:
-  - `GET http://127.0.0.1:8000/health` or `GET http://127.0.0.1:8000/api/v1/health`
-  - Response: `{"status": "ok", "service": "crop-risk-api", "version": "0.1.0"}`
+- API Base URL: `http://127.0.0.1:8000`
+- Interactive Swagger Docs: `http://127.0.0.1:8000/docs`
+- Health Endpoint: `http://127.0.0.1:8000/health`
 
-### 2. Start the Frontend Applications
+### 2. Frontend Applications Setup (Next.js)
 In a separate terminal window:
 ```powershell
-# Run the Farmer Next.js app (Default port: 3000)
+# Install root and workspace dependencies
+npm install
+
+# Run the Farmer Next.js app (Port 3000)
 npm --prefix apps/farmer run dev
 
-# Run the Expert Next.js app (In another terminal or port, e.g., 3001)
+# Run the Expert Next.js app (Port 3001)
 npm --prefix apps/expert run dev -- -p 3001
 ```
 
----
-
-## 🗄️ Supabase Migrations & Database Safety
-
-> [!WARNING]
-> **DO NOT APPLY MIGRATIONS BLINDLY TO AN EXISTING PRODUCTION DATABASE.**
-> Always back up your database before running any migration. Migrations 001 through 012 must be applied sequentially.
-
-- `supabase/migrations/001_initial_schema.sql`: Core users, farms, crops, predictions, alerts, and audit tables.
-- `supabase/migrations/002_auth_and_rls_hardening.sql`: Non-recursive role lookup function and tenant isolation policies.
-- `supabase/migrations/003_prediction_persistence.sql`: Idempotent prediction persistence and recommendation schema.
-- `supabase/migrations/004_weather_data.sql`: Hourly/daily weather telemetry observation schema.
-- `supabase/migrations/005_satellite_observations.sql`: Satellite observations with NDVI statistics and quality flags.
-- `supabase/migrations/006_grant_permissions_and_fix_rls.sql`: Least-privilege role permissions for `anon`, `authenticated`, and `service_role`.
-- `supabase/migrations/007_satellite_unique_farm_observation_date.sql`: Satellite deduplication constraint.
-- `supabase/migrations/008_farm_boundary_geometry.sql`: Polygon GeoJSON support for farm boundaries.
-- `supabase/migrations/009_closed_loop_feedback_and_outcomes.sql`: Closed-loop farmer feedback and crop outcomes.
-- `supabase/migrations/010_early_warning_alerts.sql`: Early warning alert engine schema (`farm_alerts`).
-- `supabase/migrations/011_sms_notifications.sql`: Notification audit trail (`notification_dispatches`) and user consent fields.
-- `supabase/migrations/012_fix_user_metadata_rls.sql`: **Security Hardening**: Completely purges client-editable `user_metadata` from RLS policies, enforces immutable role protection via database triggers, and prevents privilege escalation.
-
----
-
-## 🔒 Authentication & Notification Safety Protocols
-
-### Google OAuth Notice
-- Google OAuth is **not yet configured** in the Google Cloud Console.
-- In local development, the Next.js frontend provides a built-in development role selector (`Farmer`, `Expert`, `Admin`) that generates authorized dev session tokens.
-- Do not attempt live Google sign-in until production OAuth Client IDs and redirect URIs have been provisioned in the Google Cloud Console and added to Supabase Auth.
-
-### Notification Safety Notice
-- SMS and WhatsApp dispatchers are **strictly disabled** (`SMS_ENABLED=false`, `WHATSAPP_ENABLED=false`).
-- Twilio trial accounts are capped at ₹0 budget.
-- The notification service enforces explicit opt-in database consent (`sms_notifications_enabled`), phone masking, SHA-256 idempotency deduplication, and a maximum of 3 retries.
-- **Do not enable SMS/WhatsApp** until approved notification templates and production credentials are confirmed.
-
----
-
-## 🧪 Testing, CI & Security Checks
-
-### Automated Backend Tests
-Run the comprehensive 55-test security and functional suite:
+### 3. Run Automated Tests
 ```powershell
+# Run complete backend pytest suite (235 tests)
 .\venv\Scripts\activate
-pytest backend/tests -v
-```
+py -3 -m pytest backend/tests
 
-### Automated ML Regression Tests
-```powershell
-python -m unittest tests/test_live_system.py
-```
+# Run satellite regression tests specifically
+py -3 -m pytest backend/tests/test_satellite.py
 
-### Automated Frontend Tests
-```powershell
+# Run frontend test scripts
 npm run test:frontend
+
+# Run repository secret audit
+py -3 scripts/security_check.py
 ```
 
-### Pre-Commit Security & Secret Scanner
-Before committing any changes, run the repository scanner:
-```powershell
-python scripts/security_check.py
-```
-This script audits tracked and staged files for:
-- Private cryptographic keys (`BEGIN PRIVATE KEY`).
-- Stripe, GitHub, AWS, and Google live tokens.
-- Live Supabase JWTs and service-role keys.
-- Disallowed files (`.env`, `credentials.json`, `gee_key.json`).
+---
+
+## 🔑 Environment Variables & Configuration
+
+Copy `.env.example` to `.env` for local development. **Never commit `.env` files to Git.**
+
+| Variable Name | Scope | Description | Safe Example Placeholder |
+| :--- | :--- | :--- | :--- |
+| `APP_ENV` | Backend | Environment mode (`development`, `staging`, `production`) | `development` |
+| `PORT` | Backend | Web service port | `8000` |
+| `CORS_ORIGINS` | Backend | Allowed frontend origin list | `["http://localhost:3000"]` |
+| `SUPABASE_URL` | Backend | Supabase project API URL | `https://your-project.supabase.co` |
+| `SUPABASE_PUBLISHABLE_KEY` | Backend | Public anonymous API key | `your-supabase-publishable-key` |
+| `SUPABASE_SECRET_KEY` | Backend Only | Service-role administrative key | `your-supabase-secret-key` |
+| `SUPABASE_JWT_SECRET` | Backend Only | Secret for verifying auth JWTs | `your-supabase-jwt-secret` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Frontend Safe | Public Supabase URL | `https://your-project.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Frontend Safe | Public Supabase API key | `your-supabase-publishable-key` |
+| `OPENMETEO_BASE_URL` | Backend | Weather API URL (free & keyless) | `https://api.open-meteo.com/v1/forecast` |
+| `GEE_PROJECT_ID` | Backend Only | Google Cloud Project with Earth Engine API | `crop-failure-ai` |
+| `GEE_SERVICE_ACCOUNT_EMAIL` | Backend Only | Service account email | `sa@project.iam.gserviceaccount.com` |
+| `GEE_PRIVATE_KEY` | Backend Only | Service account PEM private key | `your-escaped-private-key-placeholder` |
+| `SMS_ENABLED` | Backend | Master switch for SMS dispatch | `false` |
+| `WHATSAPP_ENABLED` | Backend | Master switch for WhatsApp dispatch | `false` |
 
 ---
 
-## 🚢 Staging Deployment Guidelines (Render & Vercel)
+## 🗄️ Database Setup & Migrations
 
-### Existing Version 1 (Render)
-- **URL**: `https://reducecropfailure.onrender.com/`
-- **Rule**: Deployed from branch `main` or legacy tag. **Do not redeploy, overwrite, or reconfigure this service.**
+Database persistence is powered by PostgreSQL via Supabase with Row-Level Security (RLS). Migrations located in `supabase/migrations/` must be applied in sequential order:
 
-### Version 2 Staging Targets (Separate & Isolated)
-1. **FastAPI Backend (Render Staging Web Service)**:
-   - Create a **new, separate** Render Web Service named `crop-risk-api-staging`.
-   - Build Command: `pip install -r backend/requirements.txt -r requirements.txt`
-   - Start Command: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
-   - Configure environment variables using the staging database credentials.
-2. **Next.js Frontends (Vercel Staging Projects)**:
-   - Create two independent Vercel projects: `cropai-farmer-staging` (Root directory: `apps/farmer`) and `cropai-expert-staging` (Root directory: `apps/expert`).
-   - Configure `NEXT_PUBLIC_API_URL` pointing to the Render staging backend.
-   - Configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
-
----
-
-## ⚠️ Known Limitations & Future Work
-- **Satellite Cloud Cover**: Sentinel-2 optical imagery cannot penetrate heavy monsoon cloud cover; during such periods, the system automatically tags readings as fallback baseline NDVI.
-- **Offline Mode**: Native offline Progressive Web App (PWA) caching for rural areas with spotty cellular coverage is scheduled for Phase 3.
-- **Automated Alert Scheduler**: Currently, alerts are evaluated upon prediction requests or manual expert batch runs. An asynchronous Celery/Redis or pg_cron worker is planned for scheduled daily monitoring.
+1. `001_initial_schema.sql`: Core tables (`users`, `farms`, `farm_crops`, `predictions`, `farm_alerts`, `audit_logs`).
+2. `002_auth_and_rls_hardening.sql`: Non-recursive role lookups and tenant isolation policies.
+3. `003_prediction_persistence.sql`: Prediction history, recommendations, and feature provenance schemas.
+4. `004_weather_data.sql`: Weather observation cache table.
+5. `005_satellite_observations.sql`: Satellite observations with NDVI statistics and quality flags.
+6. `006_grant_permissions_and_fix_rls.sql`: Least-privilege grants for `anon`, `authenticated`, and `service_role`.
+7. `007_satellite_unique_farm_observation_date.sql`: Unique deduplication index on satellite records.
+8. `008_farm_boundary_geometry.sql`: Polygon GeoJSON support for farm boundaries.
+9. `009_closed_loop_feedback_and_outcomes.sql`: Closed-loop farmer feedback and actual yield outcomes.
+10. `010_early_warning_alerts.sql`: Early warning alert engine schema (`farm_alerts`).
+11. `011_sms_notifications.sql`: Notification audit trail (`notification_dispatches`) and user consent.
+12. `012_fix_user_metadata_rls.sql`: Enforces immutable role security triggers and prevents privilege escalation.
 
 ---
 
-### Project Attribution
-- **Authors**: Final-Year Major Project Team
-- **Advisory**: Department of Computer Science & Engineering
+## 🛡️ Security Audit & Responsible Use
 
+### 1. Security Scanner & Auditing
+The repository maintains an automated secret scanner (`scripts/security_check.py`) that executes in CI/CD and pre-commit checks:
+- Scans for private cryptographic keys (`BEGIN PRIVATE KEY`), live JWTs, cloud provider keys, and unencrypted credentials.
+- Strictly validates that `.env`, `.env.local`, and service account JSON files are never tracked.
+
+### 2. Tenant Isolation & Defense-in-Depth
+- **PostgreSQL Row-Level Security**: Every query is scoped to `auth.uid()` or validated farm ownership. Farmers cannot access other users' farms, predictions, or alerts.
+- **In-Memory Rate Limiting**: Sliding-window rate limiter prevents credential brute-forcing and API abuse.
+- **Header Hardening**: Enforces `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and correlation `X-Request-ID`.
+- **Zero Credential Logging**: All loggers across backend services explicitly redact private keys, tokens, and authorization headers.
+
+---
+
+## ⚠️ Known Limitations & Roadmap
+
+### Known Limitations
+- **Cloud Obscuration**: Optical Sentinel-2 imagery cannot penetrate dense monsoon cloud cover. During heavy cloud cover ($> 30\%$), the pipeline gracefully defaults to calibrated historical district baselines.
+- **Multi-Worker Rate Limiting**: The current rate limiter uses an in-memory sliding window per process. Distributed clustering will transition to Redis in Phase 3.
+- **SMS / WhatsApp Dispatches**: Intentionally suppressed (`SMS_ENABLED=false`) during staging to maintain ₹0 trial budget.
+
+### Future Roadmap
+- [ ] Automated asynchronous daily alert evaluation worker (Celery/Redis or pg_cron).
+- [ ] Offline-first Progressive Web App (PWA) caching for low-connectivity rural field use.
+- [ ] Multi-spectral synthetic aperture radar (Sentinel-1 SAR) integration for cloud-penetrating moisture tracking.
+- [ ] Hyperlocal IoT soil sensor integration.
+
+---
+
+## 👥 Authors & Acknowledgements
+
+- **Project Lead & Developer**: Vibhor Kumar ([@iamvk09](https://github.com/iamvk09))
+- **Data & Telemetry Providers**:
+  - European Space Agency (ESA) & Copernicus Open Access Hub for Sentinel-2 MSI data.
+  - Google Earth Engine for cloud-native planetary geospatial reduction.
+  - Open-Meteo for free, keyless meteorological forecasts and ECMWF Land reanalysis.
+  - Directorate of Economics and Statistics (DES), Ministry of Agriculture & Farmers Welfare, India, for historical district agricultural baselines.
