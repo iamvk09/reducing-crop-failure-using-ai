@@ -818,3 +818,52 @@ def test_nested_imputer_traversal_cycle_safety_and_dtype_preservation():
     res_num = num_imp.transform(X_test_num)
     assert res_num.shape == (2, 2)
     assert not np.isnan(res_num).any()
+
+
+def test_prediction_succeeds_with_fallback_when_shap_unavailable(
+    client: TestClient,
+    farmer1_token: str,
+):
+    """Verify missing SHAP library does not cause HTTP 500 and returns safe fallback explanation."""
+    farm_id, crop_id = create_test_farm_and_crop(client, farmer1_token)
+
+    # Simulate SHAP import failure inside get_prediction_explanation
+    with patch.dict("sys.modules", {"shap": None}):
+        res = client.post(
+            f"/api/v1/farms/{farm_id}/predictions",
+            headers=auth_headers(farmer1_token),
+            json={"force_refresh": True},
+        )
+
+    assert res.status_code == 201
+    data = res.json()
+    assert data["risk_probability"] is not None
+    assert data["risk_level"] in ("Low", "Medium", "High")
+    assert data["prediction_class"] in (0, 1)
+
+    # Explanation must be present, gracefully degraded, and clearly labelled
+    exp = data.get("explanation")
+    assert exp is not None
+    assert "Fallback" in exp["explainer_type"]
+    assert exp["base_value"] == 0.0 or isinstance(exp["base_value"], float)
+    assert len(exp["all_features"]) == 16
+    assert all(feat["attribution_value"] == 0.0 or isinstance(feat["attribution_value"], float) for feat in exp["all_features"])
+    assert len(exp["top_risk_increasing"]) == 0 or exp["explainer_type"] == "LinearAttribution (Fallback)"
+
+
+def test_normal_shap_explanation_works_when_installed():
+    """Verify normal SHAP explanation works and produces valid mathematical attributions."""
+    from backend.app.services.feature_service import FeatureAssembler
+    from backend.app.services.prediction_service import prediction_service
+
+    assembly = FeatureAssembler.assemble_features(
+        farm_state="Maharashtra",
+        farm_district="Pune",
+        crop_name="Soybean",
+        crop_season="Kharif",
+    )
+
+    exp = prediction_service.build_explanation(input_features=assembly.features)
+    assert exp.explainer_type in ("LinearExplainer", "TreeExplainer", "LinearAttribution (Fallback)")
+    assert len(exp.all_features) == 16
+    assert exp.summary_narrative != ""

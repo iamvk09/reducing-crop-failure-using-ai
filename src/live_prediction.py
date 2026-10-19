@@ -9,6 +9,7 @@ Memory-optimised design for 512 MB Render instances:
 """
 
 from datetime import datetime
+import logging
 import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -16,6 +17,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import joblib
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 try:
     from src.recommendation_engine import risk_band
@@ -737,7 +740,11 @@ def get_prediction_explanation(
     at application startup. The import is free on subsequent calls because
     Python caches module objects in sys.modules.
     """
-    import shap  # noqa: PLC0415 (intentional deferred import)
+    shap_module = None
+    try:
+        import shap as shap_module  # noqa: PLC0415 (intentional deferred import)
+    except (ImportError, ModuleNotFoundError) as err:
+        logger.warning("SHAP library unavailable for explanation: %s. Using transparent model attribution fallback.", type(err).__name__)
 
     try:
         from src.memory_diagnostics import log_memory
@@ -778,6 +785,9 @@ def get_prediction_explanation(
 
     expected_value = 0.0
     try:
+        if shap_module is None:
+            raise RuntimeError("SHAP module is not installed or available.")
+
         if _CACHED_EXPLAINER is not None and _CACHED_EXPLAINER_MODEL_NAME == best_model_name:
             explainer = _CACHED_EXPLAINER
             explainer_type = getattr(explainer, "__class__", type(explainer)).__name__
@@ -792,7 +802,7 @@ def get_prediction_explanation(
                 expected_value = explainer.expected_value
         elif hasattr(estimator, "coef_"):
             explainer_type = "LinearExplainer"
-            explainer = shap.LinearExplainer(estimator, bg_trans)
+            explainer = shap_module.LinearExplainer(estimator, bg_trans)
             _CACHED_EXPLAINER = explainer
             _CACHED_EXPLAINER_MODEL_NAME = best_model_name
             shap_vals = explainer.shap_values(row_trans)
@@ -801,7 +811,7 @@ def get_prediction_explanation(
                 expected_value = explainer.expected_value
         elif hasattr(estimator, "feature_importances_"):
             explainer_type = "TreeExplainer"
-            explainer = shap.TreeExplainer(estimator)
+            explainer = shap_module.TreeExplainer(estimator)
             _CACHED_EXPLAINER = explainer
             _CACHED_EXPLAINER_MODEL_NAME = best_model_name
             shap_vals = explainer.shap_values(row_trans)
@@ -815,12 +825,13 @@ def get_prediction_explanation(
                 expected_value = explainer.expected_value
         else:
             explainer_type = "Explainer"
-            explainer = shap.Explainer(estimator, bg_trans)
+            explainer = shap_module.Explainer(estimator, bg_trans)
             shap_vals = explainer(row_trans)
             shap_values_row = shap_vals.values[0]
             if hasattr(explainer, "expected_value"):
                 expected_value = explainer.expected_value
-    except Exception:
+    except Exception as exc:
+        logger.info("Using analytical attribution fallback for explanation: %s", type(exc).__name__)
         if hasattr(estimator, "coef_"):
             explainer_type = "LinearAttribution (Fallback)"
             diff = row_trans[0] - bg_trans.mean(axis=0)
@@ -831,6 +842,7 @@ def get_prediction_explanation(
             explainer_type = "FeatureImportance (Fallback)"
             shap_values_row = estimator.feature_importances_
         else:
+            explainer_type = "Baseline (Fallback)"
             shap_values_row = np.zeros(len(feature_names))
 
     log_memory("After SHAP explanation")

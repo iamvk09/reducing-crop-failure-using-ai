@@ -519,7 +519,24 @@ class PredictionService:
         """Construct a structured SHAP-based explanation matching the 16 features and data provenance."""
         from backend.app.schemas.prediction import PredictionExplanation, ShapFeatureContribution
 
-        exp_data = self.get_explanation(input_features)
+        try:
+            exp_data = self.get_explanation(input_features)
+        except Exception as exc:
+            logger.warning(
+                "Prediction explanation generation failed: %s. Falling back to non-attributive explanation.",
+                type(exc).__name__,
+            )
+            exp_data = {
+                "explainer_type": "Fallback (Unavailable)",
+                "output_space": "log_odds",
+                "base_value": 0.0,
+                "sum_shap": 0.0,
+                "margin_value": 0.0,
+                "feature_attributions": {feat: 0.0 for feat in input_features},
+                "top_features": [],
+                "summary": "Feature attribution analysis is currently unavailable.",
+            }
+
         attr_map = exp_data.get("feature_attributions", {})
         explainer_type = exp_data.get("explainer_type", "LinearExplainer")
         output_space = exp_data.get("output_space", "log_odds")
@@ -635,7 +652,9 @@ class PredictionService:
 
         all_sorted = sorted(items, key=lambda x: x.abs_attribution, reverse=True)
 
-        if top_increasing and top_reducing:
+        if explainer_type == "Fallback (Unavailable)":
+            narrative = "Detailed feature attribution analysis is temporarily unavailable; risk evaluation is based on full telemetry inference."
+        elif top_increasing and top_reducing:
             inc_names = ", ".join([f"{x.display_name} ({x.formatted_value})" for x in top_increasing[:2]])
             red_names = ", ".join([f"{x.display_name} ({x.formatted_value})" for x in top_reducing[:2]])
             narrative = f"The model's risk estimate is primarily driven upward by {inc_names}, while {red_names} are mitigating the predicted risk."
