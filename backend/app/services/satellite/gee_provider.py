@@ -118,12 +118,51 @@ class GoogleEarthEngineProvider(SatelliteProvider):
         has_proj = bool(clean_project_id)
 
         try:
-            # Initialize with service account credentials or project
+            # Stage 1: Validate PEM framing if service account credentials are provided
             if has_sa and has_pk:
-                credentials = self._ee.ServiceAccountCredentials(
-                    clean_service_account,
-                    key_data=clean_private_key,
-                )
+                if not pem_has_header or not pem_has_footer:
+                    self._is_initialized = False
+                    self._init_error_type = "AUTH_FAILED"
+                    self._init_error = "Earth Engine authentication failed. Please verify provider credentials."
+                    logger.warning(
+                        "GEE Provider: Could not initialize Earth Engine (%s: category=%s, stage=%s, reason=%s, project_configured=%s, service_account_configured=%s, private_key_configured=%s, pem_header=%s, pem_footer=%s)",
+                        "ValueError",
+                        "AUTHENTICATION_FAILED",
+                        "PEM_VALIDATION",
+                        "MALFORMED_OR_MISSING_PEM_ENVELOPE",
+                        has_proj,
+                        has_sa,
+                        has_pk,
+                        pem_has_header,
+                        pem_has_footer,
+                    )
+                    return False
+
+                # Stage 2: Construct service account credentials (local RSA key parsing)
+                try:
+                    credentials = self._ee.ServiceAccountCredentials(
+                        clean_service_account,
+                        key_data=clean_private_key,
+                    )
+                except Exception as cred_err:
+                    self._is_initialized = False
+                    self._init_error_type = "AUTH_FAILED"
+                    self._init_error = "Earth Engine authentication failed. Please verify provider credentials."
+                    logger.warning(
+                        "GEE Provider: Could not initialize Earth Engine (%s: category=%s, stage=%s, reason=%s, project_configured=%s, service_account_configured=%s, private_key_configured=%s, pem_header=%s, pem_footer=%s)",
+                        type(cred_err).__name__,
+                        "AUTHENTICATION_FAILED",
+                        "CREDENTIAL_CONSTRUCTION",
+                        "RSA_KEY_PARSING_FAILED",
+                        has_proj,
+                        has_sa,
+                        has_pk,
+                        pem_has_header,
+                        pem_has_footer,
+                    )
+                    return False
+
+                # Stage 3: Earth Engine Initialize handshake (OAuth token exchange & API discovery/authorization)
                 self._ee.Initialize(credentials, project=clean_project_id if has_proj else None)
             elif has_proj:
                 self._ee.Initialize(project=clean_project_id)
@@ -144,22 +183,28 @@ class GoogleEarthEngineProvider(SatelliteProvider):
             err_str = str(e).lower()
 
             # Diagnostic sub-classification without logging any secrets, tokens, or private keys
-            if any(k in err_str for k in ("invalid_grant", "jwt", "signer", "malformed", "pem file", "unable to load")):
-                diag_reason = "INVALID_KEY_OR_GRANT"
+            if any(k in err_str for k in ("invalid_grant", "jwt", "signer", "refresh error", "token endpoint")):
+                diag_stage = "TOKEN_EXCHANGE"
+                diag_reason = "TOKEN_REFRESH_OR_JWT_GRANT_FAILED"
                 is_auth_error = True
             elif any(k in err_str for k in ("permission", "403", "unauthorized", "401", "forbidden", "accessdenied")):
+                diag_stage = "API_AUTHORIZATION"
                 diag_reason = "PERMISSION_DENIED_OR_UNAUTHORIZED"
                 is_auth_error = True
             elif any(k in err_str for k in ("not been used", "disabled", "serviceusage", "enable it")):
+                diag_stage = "API_AUTHORIZATION"
                 diag_reason = "API_NOT_ENABLED_OR_DISABLED"
                 is_auth_error = True
             elif any(k in err_str for k in ("not registered", "unregistered", "project not found", "not found", "404")):
+                diag_stage = "API_AUTHORIZATION"
                 diag_reason = "PROJECT_NOT_REGISTERED_OR_NOT_FOUND"
                 is_auth_error = True
             elif any(kw in err_str for kw in ("credential", "oauth", "token")):
+                diag_stage = "TOKEN_EXCHANGE"
                 diag_reason = "AUTH_TOKEN_FAILURE"
                 is_auth_error = True
             else:
+                diag_stage = "CLIENT_INITIALIZE"
                 diag_reason = "INITIALIZATION_FAILED"
                 is_auth_error = False
 
@@ -175,9 +220,10 @@ class GoogleEarthEngineProvider(SatelliteProvider):
 
             # Log strictly the exception class and safe diagnostic category; never log raw exception messages, tokens, or keys
             logger.warning(
-                "GEE Provider: Could not initialize Earth Engine (%s: category=%s, reason=%s, project_configured=%s, service_account_configured=%s, private_key_configured=%s, pem_header=%s, pem_footer=%s)",
+                "GEE Provider: Could not initialize Earth Engine (%s: category=%s, stage=%s, reason=%s, project_configured=%s, service_account_configured=%s, private_key_configured=%s, pem_header=%s, pem_footer=%s)",
                 type(e).__name__,
                 diag_category,
+                diag_stage,
                 diag_reason,
                 has_proj,
                 has_sa,

@@ -1399,7 +1399,7 @@ def test_gee_provider_diagnostic_logging_and_malformed_credentials(monkeypatch, 
     mock_ee = MagicMock()
     monkeypatch.setitem(sys.modules, "ee", mock_ee)
 
-    # 1. Permission Denied / 403
+    # 1. API Authorization / Permission Denied / 403
     mock_ee.Initialize.side_effect = Exception("403 Forbidden: Caller does not have required permission to use project crop-failure-ai")
     provider = GoogleEarthEngineProvider(
         project_id="crop-failure-ai",
@@ -1414,28 +1414,69 @@ def test_gee_provider_diagnostic_logging_and_malformed_credentials(monkeypatch, 
     assert is_conf is False
     assert provider._init_error_type == "AUTH_FAILED"
     assert "FAKE_SECRET_KEY" not in caplog.text
+    assert "stage=API_AUTHORIZATION" in caplog.text
     assert "reason=PERMISSION_DENIED_OR_UNAUTHORIZED" in caplog.text
     assert "pem_header=True" in caplog.text
     assert "pem_footer=True" in caplog.text
 
-    # 2. Malformed PEM / Invalid Grant
+    # 2. Malformed PEM (missing headers/footers)
     caplog.clear()
-    mock_ee.ServiceAccountCredentials.side_effect = ValueError("Unable to load PEM file: MalformedFraming")
-    provider_bad_key = GoogleEarthEngineProvider(
+    provider_missing_headers = GoogleEarthEngineProvider(
         project_id="crop-failure-ai",
         service_account="test-sa@crop-failure-ai.iam.gserviceaccount.com",
         private_key="corrupt_key_without_headers",
     )
-    provider_bad_key._retry_cooldown_seconds = 0.0
+    provider_missing_headers._retry_cooldown_seconds = 0.0
 
     with caplog.at_level(logging.WARNING):
-        is_conf_bad = provider_bad_key.is_configured()
+        is_conf_bad = provider_missing_headers.is_configured()
 
     assert is_conf_bad is False
-    assert provider_bad_key._init_error_type == "AUTH_FAILED"
-    assert "reason=INVALID_KEY_OR_GRANT" in caplog.text
+    assert provider_missing_headers._init_error_type == "AUTH_FAILED"
+    assert "stage=PEM_VALIDATION" in caplog.text
+    assert "reason=MALFORMED_OR_MISSING_PEM_ENVELOPE" in caplog.text
     assert "pem_header=False" in caplog.text
     assert "pem_footer=False" in caplog.text
+
+    # 3. Credential Construction / RSA parsing failure
+    caplog.clear()
+    mock_ee.ServiceAccountCredentials.side_effect = ValueError("Unable to load PEM file: MalformedFraming")
+    provider_bad_rsa = GoogleEarthEngineProvider(
+        project_id="crop-failure-ai",
+        service_account="test-sa@crop-failure-ai.iam.gserviceaccount.com",
+        private_key="-----BEGIN PRIVATE KEY-----\\nNOT_VALID_BASE64\\n-----END PRIVATE KEY-----",
+    )
+    provider_bad_rsa._retry_cooldown_seconds = 0.0
+
+    with caplog.at_level(logging.WARNING):
+        is_conf_bad_rsa = provider_bad_rsa.is_configured()
+
+    assert is_conf_bad_rsa is False
+    assert provider_bad_rsa._init_error_type == "AUTH_FAILED"
+    assert "stage=CREDENTIAL_CONSTRUCTION" in caplog.text
+    assert "reason=RSA_KEY_PARSING_FAILED" in caplog.text
+    assert "pem_header=True" in caplog.text
+    assert "pem_footer=True" in caplog.text
+
+    # 4. Token Exchange / Refresh Error failure
+    caplog.clear()
+    mock_ee.ServiceAccountCredentials.side_effect = None
+    mock_ee.Initialize.side_effect = Exception("invalid_grant: Invalid JWT Signature.")
+    provider_jwt = GoogleEarthEngineProvider(
+        project_id="crop-failure-ai",
+        service_account="test-sa@crop-failure-ai.iam.gserviceaccount.com",
+        private_key="-----BEGIN PRIVATE KEY-----\\nFAKE_SECRET_KEY\\n-----END PRIVATE KEY-----",
+    )
+    provider_jwt._retry_cooldown_seconds = 0.0
+
+    with caplog.at_level(logging.WARNING):
+        is_conf_jwt = provider_jwt.is_configured()
+
+    assert is_conf_jwt is False
+    assert provider_jwt._init_error_type == "AUTH_FAILED"
+    assert "stage=TOKEN_EXCHANGE" in caplog.text
+    assert "reason=TOKEN_REFRESH_OR_JWT_GRANT_FAILED" in caplog.text
+
 
 
 
