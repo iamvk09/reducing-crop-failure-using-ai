@@ -1296,3 +1296,146 @@ def test_gee_provider_unconfigured_check_not_blocked_by_cooldown(monkeypatch):
     assert res.error == "Earth Engine service is not configured in this environment."
 
 
+def test_gee_provider_sanitizes_quoted_and_json_credentials(monkeypatch):
+    """Verify provider strips quotes, resolves GEE_SERVICE_ACCOUNT alias, and extracts JSON key data safely."""
+    import sys
+    from unittest.mock import MagicMock
+
+    mock_ee = MagicMock()
+    monkeypatch.setitem(sys.modules, "ee", mock_ee)
+
+    # 1. Test alias GEE_SERVICE_ACCOUNT and quoted strings
+    monkeypatch.delenv("GEE_SERVICE_ACCOUNT_EMAIL", raising=False)
+    monkeypatch.setenv("GEE_SERVICE_ACCOUNT", "'cropai-sa@crop-failure-ai.iam.gserviceaccount.com'")
+    monkeypatch.setenv("GEE_PROJECT_ID", '"crop-failure-ai"')
+    monkeypatch.setenv("GEE_PRIVATE_KEY", '"-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANBgk...\\n-----END PRIVATE KEY-----\\n"')
+
+    from backend.app.core.config import settings
+    monkeypatch.setattr(settings, "GEE_PROJECT_ID", "")
+    monkeypatch.setattr(settings, "GEE_SERVICE_ACCOUNT_EMAIL", "")
+    monkeypatch.setattr(settings, "GEE_PRIVATE_KEY", "")
+
+    provider = GoogleEarthEngineProvider()
+    provider._retry_cooldown_seconds = 0.0
+
+    assert provider.is_configured() is True
+    mock_ee.ServiceAccountCredentials.assert_called_once()
+    sa_arg, key_arg = mock_ee.ServiceAccountCredentials.call_args[0][0], mock_ee.ServiceAccountCredentials.call_args[1]["key_data"]
+    assert sa_arg == "cropai-sa@crop-failure-ai.iam.gserviceaccount.com"
+    assert not sa_arg.startswith("'")
+    assert "\n" in key_arg and "\\n" not in key_arg
+    assert not key_arg.startswith('"')
+    mock_ee.Initialize.assert_called_once_with(mock_ee.ServiceAccountCredentials.return_value, project="crop-failure-ai")
+
+    # 2. Test full JSON service account string in GEE_PRIVATE_KEY
+    mock_ee.reset_mock()
+    json_sa = (
+        '{"type": "service_account", "project_id": "crop-failure-ai", '
+        '"private_key": "-----BEGIN PRIVATE KEY-----\\nFAKE_KEY\\n-----END PRIVATE KEY-----\\n", '
+        '"client_email": "extracted-sa@crop-failure-ai.iam.gserviceaccount.com"}'
+    )
+    provider_json = GoogleEarthEngineProvider(project_id="", service_account="", private_key=json_sa)
+    provider_json._retry_cooldown_seconds = 0.0
+
+    assert provider_json.is_configured() is True
+    mock_ee.ServiceAccountCredentials.assert_called_once()
+    sa_arg2, key_arg2 = mock_ee.ServiceAccountCredentials.call_args[0][0], mock_ee.ServiceAccountCredentials.call_args[1]["key_data"]
+    assert sa_arg2 == "extracted-sa@crop-failure-ai.iam.gserviceaccount.com"
+    assert "FAKE_KEY" in key_arg2
+    assert "\n" in key_arg2 and "\\n" not in key_arg2
+    mock_ee.Initialize.assert_called_once_with(mock_ee.ServiceAccountCredentials.return_value, project="crop-failure-ai")
+
+
+def test_gee_provider_literal_backslash_n_normalization(monkeypatch):
+    """Verify that literal backslash-n sequences (\\n) in GEE_PRIVATE_KEY are converted to actual newlines."""
+    import sys
+    from unittest.mock import MagicMock
+
+    mock_ee = MagicMock()
+    monkeypatch.setitem(sys.modules, "ee", mock_ee)
+
+    # Raw string containing literal two-character '\' and 'n' sequences
+    dummy_pem_with_literal_escapes = (
+        r"-----BEGIN PRIVATE KEY-----\n"
+        r"MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDUMMYDUMMYDUMMY\n"
+        r"AQAB\n"
+        r"-----END PRIVATE KEY-----\n"
+    )
+
+    # Confirm the input has literal two-character sequences and no actual newlines
+    assert "\\n" in dummy_pem_with_literal_escapes
+    assert "\n" not in dummy_pem_with_literal_escapes
+
+    provider = GoogleEarthEngineProvider(
+        project_id="dummy-crop-project",
+        service_account="dummy-sa@dummy-crop-project.iam.gserviceaccount.com",
+        private_key=dummy_pem_with_literal_escapes,
+    )
+    provider._retry_cooldown_seconds = 0.0
+
+    assert provider.is_configured() is True
+    mock_ee.ServiceAccountCredentials.assert_called_once()
+    key_data_arg = mock_ee.ServiceAccountCredentials.call_args[1]["key_data"]
+
+    # Verify literal \n was converted to real newlines
+    assert "\\n" not in key_data_arg
+    assert "\n" in key_data_arg
+    expected_normalized = (
+        "-----BEGIN PRIVATE KEY-----\n"
+        "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDUMMYDUMMYDUMMY\n"
+        "AQAB\n"
+        "-----END PRIVATE KEY-----\n"
+    )
+    assert key_data_arg == expected_normalized
+
+
+
+def test_gee_provider_diagnostic_logging_and_malformed_credentials(monkeypatch, caplog):
+    """Verify that different failure reasons produce safe categorized diagnostics without exposing key data."""
+    import logging
+    import sys
+    from unittest.mock import MagicMock
+
+    mock_ee = MagicMock()
+    monkeypatch.setitem(sys.modules, "ee", mock_ee)
+
+    # 1. Permission Denied / 403
+    mock_ee.Initialize.side_effect = Exception("403 Forbidden: Caller does not have required permission to use project crop-failure-ai")
+    provider = GoogleEarthEngineProvider(
+        project_id="crop-failure-ai",
+        service_account="test-sa@crop-failure-ai.iam.gserviceaccount.com",
+        private_key="-----BEGIN PRIVATE KEY-----\\nFAKE_SECRET_KEY\\n-----END PRIVATE KEY-----",
+    )
+    provider._retry_cooldown_seconds = 0.0
+
+    with caplog.at_level(logging.WARNING):
+        is_conf = provider.is_configured()
+
+    assert is_conf is False
+    assert provider._init_error_type == "AUTH_FAILED"
+    assert "FAKE_SECRET_KEY" not in caplog.text
+    assert "reason=PERMISSION_DENIED_OR_UNAUTHORIZED" in caplog.text
+    assert "pem_header=True" in caplog.text
+    assert "pem_footer=True" in caplog.text
+
+    # 2. Malformed PEM / Invalid Grant
+    caplog.clear()
+    mock_ee.ServiceAccountCredentials.side_effect = ValueError("Unable to load PEM file: MalformedFraming")
+    provider_bad_key = GoogleEarthEngineProvider(
+        project_id="crop-failure-ai",
+        service_account="test-sa@crop-failure-ai.iam.gserviceaccount.com",
+        private_key="corrupt_key_without_headers",
+    )
+    provider_bad_key._retry_cooldown_seconds = 0.0
+
+    with caplog.at_level(logging.WARNING):
+        is_conf_bad = provider_bad_key.is_configured()
+
+    assert is_conf_bad is False
+    assert provider_bad_key._init_error_type == "AUTH_FAILED"
+    assert "reason=INVALID_KEY_OR_GRANT" in caplog.text
+    assert "pem_header=False" in caplog.text
+    assert "pem_footer=False" in caplog.text
+
+
+

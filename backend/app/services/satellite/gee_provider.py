@@ -54,7 +54,11 @@ class GoogleEarthEngineProvider(SatelliteProvider):
             return True
 
         project_id = self.project_id if self.project_id is not None else (getattr(settings, "GEE_PROJECT_ID", None) or os.getenv("GEE_PROJECT_ID"))
-        service_account = self.service_account if self.service_account is not None else (getattr(settings, "GEE_SERVICE_ACCOUNT_EMAIL", None) or os.getenv("GEE_SERVICE_ACCOUNT_EMAIL"))
+        service_account = self.service_account if self.service_account is not None else (
+            getattr(settings, "GEE_SERVICE_ACCOUNT_EMAIL", None)
+            or os.getenv("GEE_SERVICE_ACCOUNT_EMAIL")
+            or os.getenv("GEE_SERVICE_ACCOUNT")
+        )
         private_key = self.private_key if self.private_key is not None else (getattr(settings, "GEE_PRIVATE_KEY", None) or os.getenv("GEE_PRIVATE_KEY"))
 
         try:
@@ -69,7 +73,7 @@ class GoogleEarthEngineProvider(SatelliteProvider):
 
         # If credentials or project are not provided in environment, stay in unconfigured state.
         # Do not throttle or block configuration checks with an auth failure cooldown.
-        if not project_id and not service_account:
+        if not project_id and not service_account and not private_key:
             self._is_initialized = False
             self._init_error_type = "UNCONFIGURED"
             self._init_error = "Earth Engine service is not configured in this environment."
@@ -83,33 +87,46 @@ class GoogleEarthEngineProvider(SatelliteProvider):
 
         self._last_init_attempt_time = now
 
-        has_sa = bool(service_account and service_account.strip())
-        has_pk = bool(private_key and private_key.strip())
-        has_proj = bool(project_id and project_id.strip())
+        # Strip surrounding whitespace and potential quotation marks from Render UI copy-paste
+        clean_project_id = project_id.strip().strip("'\"") if project_id else ""
+        clean_service_account = service_account.strip().strip("'\"") if service_account else ""
+        clean_private_key = private_key.strip().strip("'\"") if private_key else ""
+
+        # If the private key was provided as a full JSON service account string
+        if clean_private_key.startswith("{") and clean_private_key.endswith("}"):
+            try:
+                import json
+                sa_data = json.loads(clean_private_key)
+                if not clean_service_account and "client_email" in sa_data:
+                    clean_service_account = sa_data["client_email"].strip().strip("'\"")
+                if not clean_project_id and "project_id" in sa_data:
+                    clean_project_id = sa_data["project_id"].strip().strip("'\"")
+                clean_private_key = sa_data.get("private_key", clean_private_key).strip().strip("'\"")
+            except Exception:
+                pass
+
+        # If newlines were escaped as literal \n in dashboard environment variables
+        if "\\n" in clean_private_key:
+            clean_private_key = clean_private_key.replace("\\n", "\n")
+
+        # Validate PEM envelope safely without exposing key bytes
+        pem_has_header = "-----BEGIN " in clean_private_key
+        pem_has_footer = "-----END " in clean_private_key
+
+        has_sa = bool(clean_service_account)
+        has_pk = bool(clean_private_key)
+        has_proj = bool(clean_project_id)
 
         try:
             # Initialize with service account credentials or project
             if has_sa and has_pk:
-                cleaned_pk = private_key.strip()
-                # If the private key was provided as a full JSON service account string
-                if cleaned_pk.startswith("{") and cleaned_pk.endswith("}"):
-                    try:
-                        import json
-                        sa_data = json.loads(cleaned_pk)
-                        cleaned_pk = sa_data.get("private_key", cleaned_pk).strip()
-                    except Exception:
-                        pass
-                # If newlines were escaped as literal \n in dashboard environment variables
-                if "\\n" in cleaned_pk and "\n" not in cleaned_pk:
-                    cleaned_pk = cleaned_pk.replace("\\n", "\n")
-
                 credentials = self._ee.ServiceAccountCredentials(
-                    service_account.strip(),
-                    key_data=cleaned_pk,
+                    clean_service_account,
+                    key_data=clean_private_key,
                 )
-                self._ee.Initialize(credentials, project=project_id.strip() if has_proj else None)
+                self._ee.Initialize(credentials, project=clean_project_id if has_proj else None)
             elif has_proj:
-                self._ee.Initialize(project=project_id.strip())
+                self._ee.Initialize(project=clean_project_id)
             else:
                 self._ee.Initialize()
 
@@ -124,9 +141,28 @@ class GoogleEarthEngineProvider(SatelliteProvider):
             return True
         except Exception as e:
             self._is_initialized = False
-            # Distinguish authentication / credential failures from general initialization issues
-            err_str = str(e).strip()
-            is_auth_error = any(kw in err_str.lower() for kw in ("credential", "oauth", "token", "unauthorized", "permission", "401", "403"))
+            err_str = str(e).lower()
+
+            # Diagnostic sub-classification without logging any secrets, tokens, or private keys
+            if any(k in err_str for k in ("invalid_grant", "jwt", "signer", "malformed", "pem file", "unable to load")):
+                diag_reason = "INVALID_KEY_OR_GRANT"
+                is_auth_error = True
+            elif any(k in err_str for k in ("permission", "403", "unauthorized", "401", "forbidden", "accessdenied")):
+                diag_reason = "PERMISSION_DENIED_OR_UNAUTHORIZED"
+                is_auth_error = True
+            elif any(k in err_str for k in ("not been used", "disabled", "serviceusage", "enable it")):
+                diag_reason = "API_NOT_ENABLED_OR_DISABLED"
+                is_auth_error = True
+            elif any(k in err_str for k in ("not registered", "unregistered", "project not found", "not found", "404")):
+                diag_reason = "PROJECT_NOT_REGISTERED_OR_NOT_FOUND"
+                is_auth_error = True
+            elif any(kw in err_str for kw in ("credential", "oauth", "token")):
+                diag_reason = "AUTH_TOKEN_FAILURE"
+                is_auth_error = True
+            else:
+                diag_reason = "INITIALIZATION_FAILED"
+                is_auth_error = False
+
             self._init_error_type = "AUTH_FAILED" if is_auth_error else "INIT_FAILED"
 
             # Always return a safe generic error message to API callers; never expose raw exceptions or keys
@@ -139,12 +175,15 @@ class GoogleEarthEngineProvider(SatelliteProvider):
 
             # Log strictly the exception class and safe diagnostic category; never log raw exception messages, tokens, or keys
             logger.warning(
-                "GEE Provider: Could not initialize Earth Engine (%s: category=%s, project_configured=%s, service_account_configured=%s, private_key_configured=%s)",
+                "GEE Provider: Could not initialize Earth Engine (%s: category=%s, reason=%s, project_configured=%s, service_account_configured=%s, private_key_configured=%s, pem_header=%s, pem_footer=%s)",
                 type(e).__name__,
                 diag_category,
+                diag_reason,
                 has_proj,
                 has_sa,
                 has_pk,
+                pem_has_header,
+                pem_has_footer,
             )
             return False
 
