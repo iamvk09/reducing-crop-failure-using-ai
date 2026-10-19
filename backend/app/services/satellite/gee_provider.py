@@ -11,6 +11,7 @@ Key Features:
 """
 
 import os
+import time
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -42,10 +43,13 @@ class GoogleEarthEngineProvider(SatelliteProvider):
 
         self._ee = None
         self._is_initialized = False
+        self._init_error_type: Optional[str] = None  # "UNCONFIGURED" | "AUTH_FAILED" | "INIT_FAILED"
         self._init_error: Optional[str] = None
+        self._last_init_attempt_time: float = 0.0
+        self._retry_cooldown_seconds: float = 60.0
 
     def _initialize_ee_if_needed(self) -> bool:
-        """Lazy singleton initialization of Earth Engine client."""
+        """Lazy singleton initialization of Earth Engine client with safe retry throttling."""
         if self._is_initialized and self._ee is not None:
             return True
 
@@ -57,40 +61,78 @@ class GoogleEarthEngineProvider(SatelliteProvider):
             import ee
             self._ee = ee
         except ImportError:
-            self._is_initialized = True
-            self._init_error = "The 'earthengine-api' Python library is not available."
+            self._is_initialized = False
+            self._init_error_type = "UNCONFIGURED"
+            self._init_error = "Earth Engine client library is not installed."
             logger.info("GEE Provider: earthengine-api not installed. Running in unconfigured mode.")
             return False
 
-        # If credentials are not provided in environment, stay in unconfigured state
+        # If credentials or project are not provided in environment, stay in unconfigured state.
+        # Do not throttle or block configuration checks with an auth failure cooldown.
         if not project_id and not service_account:
-            self._is_initialized = True
-            self._init_error = "GEE project ID or service account credentials not configured in environment."
+            self._is_initialized = False
+            self._init_error_type = "UNCONFIGURED"
+            self._init_error = "Earth Engine service is not configured in this environment."
             logger.info("GEE Provider: Credentials not configured. GEE endpoints will return SATELLITE_NOT_CONFIGURED.")
             return False
 
+        now = time.time()
+        # If an authentication/initialization attempt failed recently, throttle retries to prevent hammering
+        if self._last_init_attempt_time > 0 and (now - self._last_init_attempt_time) < self._retry_cooldown_seconds:
+            return False
+
+        self._last_init_attempt_time = now
+
+        has_sa = bool(service_account and service_account.strip())
+        has_pk = bool(private_key and private_key.strip())
+        has_proj = bool(project_id and project_id.strip())
+
         try:
             # Initialize with service account credentials or project
-            if service_account and private_key:
+            if has_sa and has_pk:
                 credentials = self._ee.ServiceAccountCredentials(
-                    service_account,
-                    key_data=private_key,
+                    service_account.strip(),
+                    key_data=private_key.strip(),
                 )
-                self._ee.Initialize(credentials, project=project_id)
-            elif project_id:
-                self._ee.Initialize(project=project_id)
+                self._ee.Initialize(credentials, project=project_id.strip() if has_proj else None)
+            elif has_proj:
+                self._ee.Initialize(project=project_id.strip())
             else:
                 self._ee.Initialize()
 
             self._is_initialized = True
+            self._init_error_type = None
             self._init_error = None
-            logger.info("GEE Provider: Google Earth Engine initialized successfully.")
+            logger.info(
+                "GEE Provider: Google Earth Engine initialized successfully (project_configured=%s, service_account_configured=%s).",
+                has_proj,
+                has_sa,
+            )
             return True
         except Exception as e:
-            self._is_initialized = True
-            # Never log raw key or sensitive data in exception
-            self._init_error = f"Earth Engine initialization failed: {type(e).__name__}"
-            logger.warning("GEE Provider: Could not initialize Earth Engine: %s", type(e).__name__)
+            self._is_initialized = False
+            # Distinguish authentication / credential failures from general initialization issues
+            err_str = str(e).strip()
+            is_auth_error = any(kw in err_str.lower() for kw in ("credential", "oauth", "token", "unauthorized", "permission", "401", "403"))
+            self._init_error_type = "AUTH_FAILED" if is_auth_error else "INIT_FAILED"
+
+            # Always return a safe generic error message to API callers; never expose raw exceptions or keys
+            if is_auth_error:
+                self._init_error = "Earth Engine authentication failed. Please verify provider credentials."
+                diag_category = "AUTHENTICATION_FAILED"
+            else:
+                self._init_error = "Earth Engine initialization failed."
+                diag_category = "INITIALIZATION_FAILED"
+
+            # Log strictly the exception class and safe diagnostic category; never log raw exception messages, tokens, or keys
+            logger.warning(
+                "GEE Provider: Could not initialize Earth Engine (%s: category=%s, project_configured=%s, service_account_configured=%s, private_key_configured=%s)",
+                type(e).__name__,
+                diag_category,
+                has_proj,
+                has_sa,
+                has_pk,
+            )
             return False
 
     def is_configured(self) -> bool:
@@ -138,13 +180,21 @@ class GoogleEarthEngineProvider(SatelliteProvider):
     ) -> SatelliteObservationResponse:
         """Query the latest cloud-free Sentinel-2 observation for farm geometry."""
         if not self._initialize_ee_if_needed():
+            status = (
+                SatelliteObservationStatus.SATELLITE_ERROR
+                if self._init_error_type == "AUTH_FAILED"
+                else SatelliteObservationStatus.SATELLITE_NOT_CONFIGURED
+            )
+            quality = "ERROR" if self._init_error_type == "AUTH_FAILED" else "UNCONFIGURED"
+            safe_error_msg = self._init_error or "Earth Engine service is unavailable."
+
             return SatelliteObservationResponse(
                 success=False,
-                status=SatelliteObservationStatus.SATELLITE_NOT_CONFIGURED,
+                status=status,
                 farm_id=farm_id,
                 geometry_type=geometry.geometry_type,
-                quality_status="UNCONFIGURED",
-                error=self._init_error or "Earth Engine is unconfigured in this environment.",
+                quality_status=quality,
+                error=safe_error_msg,
             )
 
         ee = self._ee
@@ -271,14 +321,14 @@ class GoogleEarthEngineProvider(SatelliteProvider):
                 },
             )
         except Exception as e:
-            logger.warning("GEE Provider: Query error: %s", type(e).__name__)
+            logger.warning("GEE Provider: Query error (%s: category=OBSERVATION_QUERY_FAILED)", type(e).__name__)
             return SatelliteObservationResponse(
                 success=False,
                 status=SatelliteObservationStatus.SATELLITE_ERROR,
                 farm_id=farm_id,
                 geometry_type=geometry.geometry_type,
                 quality_status="ERROR",
-                error=f"Earth Engine query execution failed: {type(e).__name__}",
+                error="Earth Engine query execution failed. Please retry later.",
             )
 
     def get_historical_observations(
@@ -385,5 +435,5 @@ class GoogleEarthEngineProvider(SatelliteProvider):
 
             return results
         except Exception as e:
-            logger.warning("GEE Provider: Historical query error: %s", type(e).__name__)
+            logger.warning("GEE Provider: Historical query error (%s: category=HISTORICAL_QUERY_FAILED)", type(e).__name__)
             return []

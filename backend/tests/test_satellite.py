@@ -1164,3 +1164,135 @@ def test_farm_geometry_prioritizes_polygon_over_point_buffer():
     assert geom_point.buffer_meters > 0.0
 
 
+def test_gee_provider_retry_cooldown_and_success_after_failure(monkeypatch):
+    """Verify that initialization failure can be retried after cooldown without being permanently blocked."""
+    import time
+    from unittest.mock import MagicMock
+
+    provider = GoogleEarthEngineProvider(project_id="test-proj", service_account="", private_key="")
+    # Shorten cooldown for test speed
+    provider._retry_cooldown_seconds = 0.1
+
+    mock_ee = MagicMock()
+    # First attempt fails with authentication error
+    mock_ee.Initialize.side_effect = Exception("Request is missing required authentication credential: invalid_token")
+
+    monkeypatch.setattr(provider, "_ee", mock_ee)
+    # Monkeypatch import ee inside _initialize_ee_if_needed
+    import sys
+    monkeypatch.setitem(sys.modules, "ee", mock_ee)
+
+    # 1. First attempt fails
+    assert provider.is_configured() is False
+    assert provider._init_error_type == "AUTH_FAILED"
+    assert "authentication failed" in provider._init_error.lower()
+    # Ensure no token / raw secret is in _init_error
+    assert "invalid_token" not in provider._init_error
+
+    # 2. Immediate second call is throttled (does not hammer ee.Initialize)
+    call_count_before = mock_ee.Initialize.call_count
+    assert provider.is_configured() is False
+    assert mock_ee.Initialize.call_count == call_count_before
+
+    # 3. Wait for cooldown to expire and simulate credentials resolved
+    time.sleep(0.12)
+    mock_ee.Initialize.side_effect = None  # Now succeeds
+    assert provider.is_configured() is True
+    assert provider._init_error is None
+    assert provider._init_error_type is None
+    assert mock_ee.Initialize.call_count == call_count_before + 1
+
+
+def test_gee_provider_error_responses_safe_and_categorized(monkeypatch):
+    """Verify latest observation query returns categorized, safe generic messages without raw exception leaks."""
+    from unittest.mock import MagicMock
+
+    provider = GoogleEarthEngineProvider(project_id="test-proj", service_account="", private_key="")
+    provider._retry_cooldown_seconds = 0.0
+
+    mock_ee = MagicMock()
+    mock_ee.Initialize.side_effect = Exception("401 Unauthorized: Bearer secret_access_token_12345 expired")
+    monkeypatch.setattr(provider, "_ee", mock_ee)
+    import sys
+    monkeypatch.setitem(sys.modules, "ee", mock_ee)
+
+    geom = FarmGeometry.from_lat_lon(18.5, 74.0)
+    res = provider.get_latest_observation(geometry=geom, farm_id="test-f1")
+
+    # Verify status and quality status distinguish auth failure from normal unconfigured state
+    assert res.success is False
+    assert res.status == SatelliteObservationStatus.SATELLITE_ERROR
+    assert res.quality_status == "ERROR"
+    # Verify safe error message: no private key or raw token leakage
+    assert "secret_access_token_12345" not in (res.error or "")
+    assert "Bearer" not in (res.error or "")
+    assert res.error == "Earth Engine authentication failed. Please verify provider credentials."
+
+
+def test_gee_provider_query_runtime_error_returns_generic_safe_message(monkeypatch):
+    """Verify runtime query error returns generic safe message and does not expose internal stack or keys."""
+    from unittest.mock import MagicMock
+
+    provider = GoogleEarthEngineProvider(project_id="test-proj", service_account="sa@example.com", private_key="key")
+    provider._is_initialized = True
+    provider._init_error = None
+    provider._init_error_type = None
+
+    mock_ee = MagicMock()
+    mock_ee.ImageCollection.side_effect = Exception("EEException: Internal server error with token=PRIVATE_DATA")
+    provider._ee = mock_ee
+
+    geom = FarmGeometry.from_lat_lon(18.5, 74.0)
+    res = provider.get_latest_observation(geometry=geom, farm_id="test-f1")
+
+    assert res.success is False
+    assert res.status == SatelliteObservationStatus.SATELLITE_ERROR
+    assert res.quality_status == "ERROR"
+    assert "PRIVATE_DATA" not in (res.error or "")
+    assert res.error == "Earth Engine query execution failed. Please retry later."
+
+
+def test_gee_provider_unconfigured_check_not_blocked_by_cooldown(monkeypatch):
+    """Verify that unconfigured detection is immediate and never delayed or blocked by a previous failure's cooldown."""
+    import time
+    from unittest.mock import MagicMock
+
+    provider = GoogleEarthEngineProvider(project_id="test-proj", service_account="", private_key="")
+    # Set a long cooldown
+    provider._retry_cooldown_seconds = 60.0
+
+    mock_ee = MagicMock()
+    mock_ee.Initialize.side_effect = Exception("401 Unauthorized: missing credentials")
+    monkeypatch.setattr(provider, "_ee", mock_ee)
+    import sys
+    monkeypatch.setitem(sys.modules, "ee", mock_ee)
+
+    # 1. Trigger an auth failure which records _last_init_attempt_time
+    assert provider.is_configured() is False
+    assert provider._init_error_type == "AUTH_FAILED"
+    assert provider._last_init_attempt_time > 0
+
+    # 2. Simulate credentials being removed / cleared
+    provider.project_id = ""
+    provider.service_account = ""
+    provider.private_key = ""
+    from backend.app.core.config import settings
+    monkeypatch.setattr(settings, "GEE_PROJECT_ID", None)
+    monkeypatch.setattr(settings, "GEE_SERVICE_ACCOUNT_EMAIL", None)
+    monkeypatch.setattr(settings, "GEE_PRIVATE_KEY", None)
+
+    # 3. Check configuration immediately without waiting 60s
+    # The provider must immediately detect missing configuration, rather than returning stale throttled False
+    is_conf = provider.is_configured()
+    assert is_conf is False
+    assert provider._init_error_type == "UNCONFIGURED"
+    assert "not configured" in (provider._init_error or "").lower()
+
+    # 4. Observation response reflects SATELLITE_NOT_CONFIGURED and UNCONFIGURED quality, not SATELLITE_ERROR
+    geom = FarmGeometry.from_lat_lon(18.5, 74.0)
+    res = provider.get_latest_observation(geometry=geom, farm_id="test-f1")
+    assert res.status == SatelliteObservationStatus.SATELLITE_NOT_CONFIGURED
+    assert res.quality_status == "UNCONFIGURED"
+    assert res.error == "Earth Engine service is not configured in this environment."
+
+
